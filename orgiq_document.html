@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OrgIQ — Workforce Intelligence Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Source+Sans+3:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+/* =====================================================
+   CSS CUSTOM PROPERTIES — WHITE PROFESSIONAL THEME
+   ===================================================== */
+:root {
+  --bg:          #ffffff;
+  --bg-alt:      #f7f8fa;
+  --bg-accent:   #eef2ff;
+  --ink:         #0f172a;
+  --ink-2:       #1e293b;
+  --ink-3:       #475569;
+  --ink-4:       #94a3b8;
+  --blue:        #1d4ed8;
+  --blue-dark:   #1e3a8a;
+  --blue-mid:    #3b82f6;
+  --blue-light:  #dbeafe;
+  --blue-pale:   #eff6ff;
+  --rule:        #e2e8f0;
+  --rule-dark:   #cbd5e1;
+
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body:    'Source Sans 3', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+
+  --title-size:    clamp(2.2rem, 5vw, 3.8rem);
+  --h2-size:       clamp(1.6rem, 3vw, 2.4rem);
+  --h3-size:       clamp(1.2rem, 2.2vw, 1.7rem);
+  --body-size:     clamp(0.95rem, 1.4vw, 1.15rem);
+  --small-size:    clamp(0.8rem, 1.1vw, 0.95rem);
+  --label-size:    clamp(0.7rem, 0.9vw, 0.8rem);
+
+  --slide-padding: clamp(2.5rem, 6vw, 6rem);
+  --content-gap:   clamp(1rem, 2.5vw, 2.5rem);
+  --ease:          cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* =====================================================
+   RESET + VIEWPORT BASE
+   ===================================================== */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html {
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--ink);
+  height: 100%;
+  overflow-x: hidden;
+}
+
+/* =====================================================
+   SLIDE SYSTEM
+   ===================================================== */
+.slide {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: var(--bg);
+}
+
+.slide-alt  { background: var(--bg-alt); }
+.slide-blue { background: var(--blue-dark); }
+.slide-accent { background: var(--bg-accent); }
+
+.slide-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-height: 100%;
+  overflow: hidden;
+  padding: var(--slide-padding);
+}
+
+.slide-content.left  { align-items: flex-start; }
+.slide-content.center { align-items: center; text-align: center; }
+
+/* =====================================================
+   ANIMATIONS
+   ===================================================== */
+.reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.6s var(--ease), transform 0.6s var(--ease);
+}
+.slide.visible .reveal          { opacity: 1; transform: translateY(0); }
+.slide.visible .reveal:nth-child(1) { transition-delay: 0.05s; }
+.slide.visible .reveal:nth-child(2) { transition-delay: 0.12s; }
+.slide.visible .reveal:nth-child(3) { transition-delay: 0.19s; }
+.slide.visible .reveal:nth-child(4) { transition-delay: 0.26s; }
+.slide.visible .reveal:nth-child(5) { transition-delay: 0.33s; }
+.slide.visible .reveal:nth-child(6) { transition-delay: 0.40s; }
+.slide.visible .reveal:nth-child(7) { transition-delay: 0.47s; }
+
+/* =====================================================
+   PROGRESS BAR
+   ===================================================== */
+.progress-bar {
+  position: fixed;
+  top: 0; left: 0;
+  height: 3px;
+  background: var(--blue);
+  width: 0%;
+  z-index: 1000;
+  transition: width 0.3s ease;
+}
+
+/* =====================================================
+   NAV DOTS
+   ===================================================== */
+.nav-dots {
+  position: fixed;
+  right: clamp(1rem, 2vw, 2rem);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 999;
+  list-style: none;
+}
+.nav-dots li {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--rule-dark);
+  cursor: pointer;
+  transition: all 0.25s;
+}
+.nav-dots li.active { background: var(--blue); transform: scale(1.5); }
+
+/* =====================================================
+   SLIDE HEADER STRIP
+   ===================================================== */
+.slide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(1rem, 2vw, 1.6rem) var(--slide-padding);
+  border-bottom: 1.5px solid var(--rule);
+  flex-shrink: 0;
+}
+.slide-header-blue {
+  border-bottom-color: rgba(255,255,255,0.15);
+}
+.brand-tag {
+  font-family: var(--font-mono);
+  font-size: var(--label-size);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--blue);
+}
+.brand-tag-white { color: rgba(255,255,255,0.6); }
+.section-tag {
+  font-family: var(--font-mono);
+  font-size: var(--label-size);
+  color: var(--ink-4);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.section-tag-white { color: rgba(255,255,255,0.4); }
+
+/* =====================================================
+   TYPOGRAPHY
+   ===================================================== */
+h1 {
+  font-family: var(--font-display);
+  font-size: var(--title-size);
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+h1.white { color: #fff; }
+
+h2 {
+  font-family: var(--font-display);
+  font-size: var(--h2-size);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+h2.blue { color: var(--blue-dark); }
+
+h3 {
+  font-family: var(--font-body);
+  font-size: var(--h3-size);
+  font-weight: 700;
+  color: var(--ink-2);
+  line-height: 1.3;
+}
+
+p, li {
+  font-size: var(--body-size);
+  line-height: 1.7;
+  color: var(--ink-3);
+}
+
+.lead {
+  font-size: clamp(1.05rem, 1.8vw, 1.35rem);
+  line-height: 1.6;
+  color: var(--ink-2);
+  font-weight: 400;
+}
+.lead-white { color: rgba(255,255,255,0.85); }
+
+.label {
+  font-family: var(--font-mono);
+  font-size: var(--label-size);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--blue);
+  margin-bottom: 0.6rem;
+  display: block;
+}
+.label-white { color: rgba(255,255,255,0.5); }
+
+/* =====================================================
+   RULE DIVIDERS
+   ===================================================== */
+.rule {
+  width: 60px;
+  height: 3px;
+  background: var(--blue);
+  margin: clamp(0.8rem, 1.5vw, 1.2rem) 0;
+  flex-shrink: 0;
+}
+.rule-full {
+  width: 100%;
+  height: 1px;
+  background: var(--rule);
+  margin: clamp(0.8rem, 1.5vw, 1.2rem) 0;
+  flex-shrink: 0;
+}
+
+/* =====================================================
+   GRID LAYOUTS
+   ===================================================== */
+.col-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(1.5rem, 3vw, 3rem);
+  align-items: start;
+}
+.col-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(1rem, 2vw, 2rem);
+}
+.col-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: clamp(0.8rem, 1.5vw, 1.5rem);
+}
+
+/* =====================================================
+   CARDS
+   ===================================================== */
+.card {
+  background: var(--bg);
+  border: 1.5px solid var(--rule);
+  border-radius: 10px;
+  padding: clamp(1rem, 2vw, 1.8rem);
+}
+.card-blue {
+  background: var(--blue-pale);
+  border-color: var(--blue-light);
+}
+.card-white {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  padding: clamp(1rem, 2vw, 1.8rem);
+}
+
+.card h3 { color: var(--ink); margin-bottom: 0.5rem; }
+.card p   { font-size: var(--small-size); line-height: 1.6; }
+.card-white h3 { color: #fff; }
+.card-white p  { color: rgba(255,255,255,0.7); }
+
+.card-num {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 3.5vw, 3rem);
+  font-weight: 800;
+  color: var(--blue);
+  line-height: 1;
+  margin-bottom: 0.2rem;
+}
+.card-num-white { color: #fff; }
+
+/* =====================================================
+   TABLE STYLES
+   ===================================================== */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--small-size);
+}
+.data-table th {
+  text-align: left;
+  padding: 0.6rem 1rem;
+  background: var(--blue-dark);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: calc(var(--label-size) * 0.95);
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+.data-table td {
+  padding: 0.55rem 1rem;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink-2);
+  line-height: 1.4;
+}
+.data-table tr:nth-child(even) td { background: var(--bg-alt); }
+.data-table .check { color: var(--blue); font-weight: 700; }
+
+/* =====================================================
+   STEP / PROCESS ITEMS
+   ===================================================== */
+.steps { display: flex; flex-direction: column; gap: clamp(0.6rem, 1.2vw, 1.1rem); }
+.step {
+  display: flex;
+  gap: clamp(0.8rem, 1.5vw, 1.4rem);
+  align-items: flex-start;
+}
+.step-num {
+  width: clamp(28px, 4vw, 38px);
+  height: clamp(28px, 4vw, 38px);
+  min-width: clamp(28px, 4vw, 38px);
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono);
+  font-size: var(--label-size);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.step-body h4 {
+  font-family: var(--font-body);
+  font-size: var(--body-size);
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 0.15rem;
+}
+.step-body p {
+  font-size: var(--small-size);
+  line-height: 1.5;
+}
+
+/* =====================================================
+   TECH PILL / BADGE
+   ===================================================== */
+.tech-badge {
+  display: inline-block;
+  padding: 0.25rem 0.7rem;
+  background: var(--blue-light);
+  color: var(--blue-dark);
+  border-radius: 20px;
+  font-family: var(--font-mono);
+  font-size: var(--label-size);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* =====================================================
+   ARCH FLOW DIAGRAM
+   ===================================================== */
+.arch-flow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.5rem, 1.5vw, 1.2rem);
+  flex-wrap: nowrap;
+  max-width: 100%;
+}
+.arch-node {
+  text-align: center;
+  flex: 1;
+  min-width: 0;
+}
+.arch-box {
+  background: var(--blue-pale);
+  border: 2px solid var(--blue-light);
+  border-radius: 8px;
+  padding: clamp(0.5rem, 1.2vw, 1rem) clamp(0.4rem, 1vw, 0.8rem);
+}
+.arch-box.blue-box {
+  background: var(--blue-dark);
+  border-color: var(--blue-dark);
+}
+.arch-box .arch-label {
+  font-family: var(--font-mono);
+  font-size: clamp(0.6rem, 0.9vw, 0.75rem);
+  font-weight: 700;
+  color: var(--blue-dark);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.arch-box.blue-box .arch-label { color: #fff; }
+.arch-box .arch-sub {
+  font-size: clamp(0.55rem, 0.8vw, 0.68rem);
+  color: var(--ink-3);
+  margin-top: 0.15rem;
+}
+.arch-box.blue-box .arch-sub { color: rgba(255,255,255,0.6); }
+.arch-arrow {
+  color: var(--blue-mid);
+  font-size: clamp(1rem, 1.8vw, 1.5rem);
+  flex-shrink: 0;
+  font-weight: 300;
+}
+
+/* =====================================================
+   FORMULA BLOCK
+   ===================================================== */
+.formula-block {
+  background: var(--bg-alt);
+  border-left: 4px solid var(--blue);
+  border-radius: 0 8px 8px 0;
+  padding: clamp(0.8rem, 1.5vw, 1.2rem) clamp(1rem, 2vw, 1.8rem);
+  font-family: var(--font-mono);
+  font-size: clamp(0.7rem, 1.1vw, 0.9rem);
+  color: var(--ink-2);
+  line-height: 1.8;
+}
+
+/* =====================================================
+   BULLET LIST
+   ===================================================== */
+.check-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.4rem, 0.9vw, 0.8rem);
+}
+.check-list li {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+  font-size: var(--body-size);
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+.check-list li::before {
+  content: '✓';
+  color: var(--blue);
+  font-weight: 700;
+  font-size: 1em;
+  flex-shrink: 0;
+  margin-top: 0.05em;
+}
+
+/* =====================================================
+   KEYBOARD HINT
+   ===================================================== */
+.keyboard-hint {
+  position: fixed;
+  bottom: clamp(0.8rem, 1.5vw, 1.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--ink-4);
+  letter-spacing: 0.08em;
+  z-index: 998;
+}
+
+/* =====================================================
+   PRINT SUPPORT
+   ===================================================== */
+@media print {
+  .progress-bar, .nav-dots, .keyboard-hint { display: none; }
+  .slide {
+    height: 100vh;
+    page-break-after: always;
+    break-after: page;
+  }
+  html { scroll-snap-type: none; }
+}
+
+/* =====================================================
+   REDUCED MOTION
+   ===================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.15s !important;
+  }
+  html { scroll-behavior: auto; }
+}
+
+/* =====================================================
+   SHORT VIEWPORT BREAKPOINTS
+   ===================================================== */
+@media (max-height: 700px) {
+  :root {
+    --slide-padding: clamp(1.2rem, 3vw, 2.5rem);
+    --content-gap: clamp(0.6rem, 1.5vw, 1.2rem);
+    --title-size: clamp(1.8rem, 4vw, 2.8rem);
+    --h2-size: clamp(1.3rem, 2.5vw, 1.9rem);
+  }
+}
+@media (max-height: 600px) {
+  :root {
+    --slide-padding: clamp(0.8rem, 2.5vw, 1.8rem);
+    --title-size: clamp(1.5rem, 3.5vw, 2.2rem);
+    --body-size: clamp(0.8rem, 1.2vw, 1rem);
+  }
+  .nav-dots, .keyboard-hint { display: none; }
+}
+@media (max-height: 500px) {
+  :root {
+    --slide-padding: clamp(0.6rem, 2vw, 1.2rem);
+    --title-size: clamp(1.2rem, 3vw, 1.8rem);
+    --h2-size: clamp(1rem, 2.2vw, 1.5rem);
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progressBar"></div>
+<nav class="nav-dots" id="navDots"></nav>
+<div class="keyboard-hint">↑ ↓ arrow keys to navigate</div>
+
+<!-- ===================================================
+     SLIDE 1 — COVER
+     =================================================== -->
+<section class="slide slide-blue" id="slide-1">
+  <div style="position:absolute;inset:0;background:linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 60%,#2563eb 100%);"></div>
+  <div style="position:absolute;bottom:0;right:0;width:40%;height:100%;opacity:0.04;background:repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%);background-size:20px 20px;"></div>
+
+  <div class="slide-header slide-header-blue" style="position:relative;z-index:1;">
+    <span class="brand-tag-white" style="font-family:var(--font-mono);font-size:var(--label-size);font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.5);">CONFIDENTIAL — INTERNAL DOCUMENT</span>
+    <span style="font-family:var(--font-mono);font-size:var(--label-size);color:rgba(255,255,255,0.35);">2026</span>
+  </div>
+
+  <div class="slide-content center" style="position:relative;z-index:1;">
+    <span class="reveal" style="font-family:var(--font-mono);font-size:var(--label-size);color:rgba(255,255,255,0.5);letter-spacing:.14em;text-transform:uppercase;margin-bottom:1rem;display:block;">Project Documentation</span>
+    <h1 class="white reveal" style="font-size:clamp(3rem,7vw,5.5rem);margin-bottom:0.5rem;">OrgIQ</h1>
+    <div class="reveal" style="width:80px;height:3px;background:rgba(255,255,255,0.4);margin:0.8rem auto 1.2rem;"></div>
+    <p class="lead-white reveal" style="max-width:620px;font-size:clamp(1.1rem,2vw,1.5rem);">Workforce Intelligence Dashboard</p>
+    <p class="reveal" style="color:rgba(255,255,255,0.55);font-size:var(--body-size);margin-top:1rem;max-width:500px;">A complete AWS-powered HR analytics platform — real-time metrics, attrition risk scoring, hiring funnel tracking, and a live org chart.</p>
+
+    <div class="reveal" style="display:flex;gap:clamp(1rem,2vw,2rem);margin-top:clamp(1.5rem,3vw,2.5rem);justify-content:center;flex-wrap:wrap;">
+      <div style="text-align:center;">
+        <div style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.4rem);font-weight:800;color:#fff;">75</div>
+        <div style="font-size:var(--small-size);color:rgba(255,255,255,0.5);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;">Employees</div>
+      </div>
+      <div style="width:1px;background:rgba(255,255,255,0.15);flex-shrink:0;"></div>
+      <div style="text-align:center;">
+        <div style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.4rem);font-weight:800;color:#fff;">7</div>
+        <div style="font-size:var(--small-size);color:rgba(255,255,255,0.5);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;">Dashboard Tabs</div>
+      </div>
+      <div style="width:1px;background:rgba(255,255,255,0.15);flex-shrink:0;"></div>
+      <div style="text-align:center;">
+        <div style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.4rem);font-weight:800;color:#fff;">100%</div>
+        <div style="font-size:var(--small-size);color:rgba(255,255,255,0.5);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;">Requirements Met</div>
+      </div>
+      <div style="width:1px;background:rgba(255,255,255,0.15);flex-shrink:0;"></div>
+      <div style="text-align:center;">
+        <div style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.4rem);font-weight:800;color:#fff;">Live</div>
+        <div style="font-size:var(--small-size);color:rgba(255,255,255,0.5);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;">On AWS</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================
+     SLIDE 2 — WHAT IS ORGIQ
+     =================================================== -->
+<section class="slide" id="slide-2">
+  <div class="slide-header">
+    <span class="brand-tag">OrgIQ</span>
+    <span class="section-tag">Overview</span>
+  </div>
+  <div class="slide-content left">
+    <span class="label reveal">What is this project</span>
+    <h2 class="blue reveal">What OrgIQ Does</h2>
+    <div class="rule reveal"></div>
+    <p class="lead reveal" style="max-width:780px;margin-bottom:clamp(1.2rem,2.5vw,2rem);">OrgIQ is a real-time HR analytics platform built on AWS. It turns raw employee data sitting in a database into actionable charts, risk alerts, and org structure — all on one secure, role-gated dashboard that HR and leadership can open in any browser.</p>
+
+    <div class="col-2 reveal" style="max-width:880px;gap:clamp(1rem,2vw,1.8rem);">
+      <div class="card card-blue">
+        <div class="label" style="margin-bottom:0.4rem;">The Problem It Solves</div>
+        <p style="color:var(--ink-2);">HR teams sit on piles of data spread across spreadsheets and siloed systems. OrgIQ aggregates everything nightly, computes the metrics that matter, and presents them on one screen with no manual work.</p>
+      </div>
+      <div class="card card-blue">
+        <div class="label" style="margin-bottom:0.4rem;">Who It Is For</div>
+        <p style="color:var(--ink-2);">HR administrators and leadership who need a quick pulse on workforce health — who might leave, how hiring is going, which departments are burning through leave — without digging through raw data.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================
+     SLIDE 3 — WHAT YOU CAN SEE ON THE DASHBOARD
+     =================================================== -->
+<section class="slide slide-alt" id="slide-3">
+  <div class="slide-header">
+    <span class="brand-tag">OrgIQ</span>
+    <span class="section-tag">Dashboard Overview</span>
+  </div>
+  <div class="slide-content left">
+    <span class="label reveal">7 tabs — everything in one place</span>
+    <h2 class="blue reveal">What the Dashboard Shows</h2>
+    <div class="rule reveal"></div>
+
+    <div class="col-3 reveal" style="margin-top:0.5rem;">
+      <div class="card">
+        <div class="label">Overview</div>
+        <h3 style="font-size:var(--body-size);margin-bottom:0.3rem;">Headline Numbers</h3>
+        <p>5 KPI cards at a glance — total headcount, high-risk employees, open pipeline, average leave utilisation, and offer accept rate. Four charts below.</p>
+      </div>
+      <div class="card">
+        <div class="label">Headcount</div>
+        <h3 style="font-size:var(--body-size);margin-bottom:0.3rem;">Workforce Trends</h3>
+        <p>Monthly hires vs departures over 6 months. Stacked bars per department. Current headcount split as a doughnut.</p>
+      </div>
+      <div class="card">
+        <div class="label">Leave</div>
+        <h3 style="font-size:var(--body-size);margin-bottom:0.3rem;">Leave Utilisation</h3>
+        <p>Each department's leave usage as a % of monthly quota. Current month vs 3-month average. Per-department cards below.</p>
+      </div>
+      <div class="card">
+        <div class="label">Recruitment</div>
+        <h3 style="font-size:var(--body-size);margin-bottom:0.3rem;">Hiring Funnel</h3>
+        <p>Applied → Shortlisted → Interviewed → Offered → Joined. Cumulative counts, 4 conversion rates, stage drop-off bar chart.</p>
+      </div>
+      <div class="card">
+        <div class="label">Attrition Risk</div>
+        <h3 style="font-size:var(--body-size);margin-bottom:0.3rem;">Who Might Leave</h3>
+        <p>Top 10 employees by risk score (0–100). Sortable by any column. Shows leave days, performance, and tenure per person.</p>
+      </div>
+      <div class="card">
+        <div class="label">Org Chart</div>
+        <h3 style="font-size:var(--body-size);margin-bottom:0.3rem;">Reporting Structure</h3>
+        <p>Interactive D3.js tree. Full reporting hierarchy from CEO downward. Pan, zoom, hover for details on each person.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================
+     SLIDE 4 — SYSTEM ARCHITECTURE
+     =================================================== -->
+<section class="slide" id="slide-4">
+  <div class="slide-header">
+    <span class="brand-tag">OrgIQ</span>
+    <span class="section-tag">Architecture</span>
+  </div>
+  <div class="slide-content left">
+    <span class="label reveal">How data flows through the system</span>
+    <h2 class="blue reveal">System Architecture</h2>
+    <div class="rule reveal"></div>
+
+    <div class="arch-flow reveal" style="margin:clamp(0.8rem,1.5vw,1.5rem) 0;">
+      <div class="arch-node">
+        <div class="arch-box">
+          <div class="arch-label">Source Tables</div>
+          <div class="arch-sub">Employees · Leave<br>Performance · Recruitment</div>
+        </div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node">
+        <div class="arch-box blue-box">
+          <div class="arch-label">Aggregation Lambda</div>
+          <div class="arch-sub">Daily 2 AM UTC<br>EventBridge trigger</div>
+        </div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node">
+        <div class="arch-box">
+          <div class="arch-label">Analytics Table</div>
+          <div class="arch-sub">metric_name + date<br>177 metrics stored</div>
+        </div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node">
+        <div class="arch-box blue-box">
+          <div class="arch-label">API Gateway</div>
+          <div class="arch-sub">/metrics · /org-chart<br>/health</div>
+        </div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node">
+        <div class="arch-box">
+          <div class="arch-label">S3 Dashboard</div>
+          <div class="arch-sub">Single HTML file<br>Cognito login gate</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-2 reveal" style="max-width:860px;margin-top:clamp(0.5rem,1.5vw,1.2rem);">
+      <div>
+        <h3 style="font-size:var(--body-size);margin-bottom:0.6rem;color:var(--blue-dark);">Four DynamoDB source tables</h3>
+        <ul class="check-list" style="font-size:var(--small-size);">
+          <li>workforce_employees_prod — 75 employees with manager_id tree structure</li>
+          <li>workforce_leave_records_prod — leave events per employee this year</li>
+          <li>workforce_performance_prod — quarterly review scores</li>
+          <li>workforce_recruitment_prod — 120 applicants across pipeline stages</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="font-size:var(--body-size);margin-bottom:0.6rem;color:var(--blue-dark);">Four Lambda functions</h3>
+        <ul class="check-list" style="font-size:var(--small-size);">
+          <li>Aggregation — reads all 4 tables, computes metrics, writes to analytics table</li>
+          <li>Metrics API — serves all dashboard chart data via /metrics</li>
+          <li>Org Chart — builds recursive JSON tree via /org-chart</li>
+          <li>Health API — fetches real CloudWatch stats via /health</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================
+     SLIDE 5 — TECHNOLOGY STACK
+     =================================================== -->
+<section class="slide slide-alt" id="slide-5">
+  <div class="slide-header">
+    <span class="brand-tag">OrgIQ</span>
+    <span class="section-tag">Technology</span>
+  </div>
+  <div class="slide-content left">
+    <span class="label reveal">Every service and why it was chosen</span>
+    <h2 class="blue reveal">Technology Stack</h2>
+    <div class="rule reveal"></div>
+
+    <table class="data-table reveal">
+      <thead>
+        <tr>
+          <th style="width:18%;">Service</th>
+          <th style="width:18%;">AWS Product</th>
+          <th style="width:64%;">What it does in this project</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Database</strong></td><td>DynamoDB</td><td>Stores raw HR data in 5 tables (employees, leave, performance, recruitment, analytics). Serverless NoSQL — no schema to manage, scales automatically, pay-per-request pricing.</td></tr>
+        <tr><td><strong>Compute</strong></td><td>Lambda (×4)</td><td>Python functions that run on demand. The aggregation Lambda fires on a schedule; the API Lambdas fire on each dashboard request. No servers to maintain.</td></tr>
+        <tr><td><strong>Scheduler</strong></td><td>EventBridge</td><td>Triggers the aggregation Lambda every day at 2 AM UTC using a cron expression. Fully managed — no cron jobs, no EC2 instance needed.</td></tr>
+        <tr><td><strong>API</strong></td><td>API Gateway</td><td>Exposes three endpoints: /metrics for all chart data, /org-chart for the reporting tree, /health for CloudWatch stats. Handles routing, CORS, and throttling.</td></tr>
+        <tr><td><strong>Auth</strong></td><td>Cognito</td><td>Manages login. The browser calls Cognito directly — no server in between. Returns a JWT token on success. Enforces HR_Admin and Leadership group membership before granting access.</td></tr>
+        <tr><td><strong>Hosting</strong></td><td>S3 + Website</td><td>The entire dashboard is one HTML file served from an S3 bucket configured as a static website. No web server, no maintenance, ~$0.00/month hosting cost.</td></tr>
+        <tr><td><strong>Monitoring</strong></td><td>CloudWatch</td><td>Stores Lambda invocation counts, error rates, and API Gateway request volume automatically. The /health Lambda reads these in real time for the System Health tab.</td></tr>
+        <tr><td><strong>Charts</strong></td><td>Chart.js + D3</td><td>Chart.js renders bar, stacked bar, doughnut, and line charts from CDN. D3.js v7 renders the interactive org chart tree with zoom, pan, and tooltips.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ===================================================
+     SLIDE 6 — ATTRITION RISK FORMULA
+     =================================================== -->
+<section class="slide" id="slide-6">
+  <div class="slide-header">
+    <span class="brand-tag">OrgIQ</span>
+    <span class="section-tag">Attrition Risk Model</span>
+  </div>
+  <div class="slide-content left">
+    <span class="label reveal">Computed nightly for every active employee</span>
+    <h2 class="blue reveal">How Attrition Risk Is Calculated</h2>
+    <div class="rule reveal"></div>
+
+    <div class="formula-block reveal" style="margin-bottom:clamp(0.8rem,1.5vw,1.2rem);">
+      score = (0.35 × leave_ratio) + (0.35 × perf_inverse) + (0.20 × tenure_risk) + (0.10 × absence_freq)
+      <br>score × 100  →  final score between 0 and 100
+    </div>
+
+    <div class="col-2 reveal">
+      <table class="data-table" style="font-size:var(--small-size);">
+        <thead>
+          <tr><th>Factor</th><th>Weight</th><th>Formula</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Leave ratio</td><td style="color:#1d4ed8;font-weight:700;">35%</td><td>days_taken ÷ 21 ÷ 1.5, capped at 1.0</td></tr>
+          <tr><td>Perf. inverse</td><td style="color:#1d4ed8;font-weight:700;">35%</td><td>(5.0 − avg_score) ÷ 4.0</td></tr>
+          <tr><td>Tenure risk</td><td style="color:#1d4ed8;font-weight:700;">20%</td><td>U-shaped (see bands)</td></tr>
+          <tr><td>Absence freq.</td><td style="color:#1d4ed8;font-weight:700;">10%</td><td>leave_events ÷ 10</td></tr>
+        </tbody>
+      </table>
+
+      <div>
+        <table class="data-table" style="font-size:var(--small-size);margin-bottom:0.8rem;">
+          <thead><tr><th>Tenure</th><th>Risk factor</th><th>Reason</th></tr></thead>
+          <tbody>
+            <tr><td>&lt; 3 months</td><td style="color:#ef4444;font-weight:700;">1.00</td><td>Onboarding failure</td></tr>
+            <tr><td>3–11 months</td><td style="color:#f97316;font-weight:700;">0.75</td><td>Still settling</td></tr>
+            <tr><td>12–35 months</td><td style="color:#16a34a;font-weight:700;">0.20</td><td>Stable zone</td></tr>
+            <tr><td>36–47 months</td><td style="color:#f97316;font-weight:700;">0.35</td><td>Mid-career drift</td></tr>
+            <tr><td>≥ 48 months</td><td style="color:#dc2626;font-weight:700;">0.60</td><td>Ceiling risk</td></tr>
+          </tbody>
+        </table>
+
+        <div style="display:flex;gap:0.6rem;">
+          <div style="flex:1;background:#dcfce7;border-radius:6px;padding:0.5rem 0.7rem;text-align:center;">
+            <div style="font-weight:700;color:#15803d;font-size:var(--small-size);">0 – 30</div>
+            <div style="font-size:calc(var(--small-size)*0.9);color:#166534;">LOW — check-in</div>
+          </div>
+          <div style="flex:1;background:#fef9c3;border-radius:6px;padding:0.5rem 0.7rem;text-align:center;">
+            <div style="font-weight:700;color:#a16207;font-size:var(--small-size);">31 – 60</div>
+            <div style="font-size:calc(var(--small-size)*0.9);color:#854d0e;">MEDIUM — 1:1 in 2wks</div>
+          </div>
+          <div style="flex:1;background:#fee2e2;border-radius:6px;padding:0.5rem 0.7rem;text-align:center;">
+            <div style="font-weight:700;color:#dc2626;font-size:var(--small-size);">61 – 100</div>
+            <div style="font-size:calc(var(--small-size)*0.9);color:#991b1b;">HIGH — act in 72h</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================
+     SLIDE 7 — DEMO INTRO
+     =================================================== -->
+<section class="slide slide-blue" id="slide-7">
+  <div style="position:absolute;inset:0;background:linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 100%);"></div>
+  <div class="slide-header slide-header-blue" style="position:relative;z-index:1;">
+    <span style="font-family:var(--font-mono);font-size:var(--label-size);font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.5);">OrgIQ</span>
+    <span style="font-family:var(--font-mono);font-size:var(--label-size);color:rgba(255,255,255,0.35);">Demo Walkthrough</span>
+  </div>
+  <div class="slide-content center" style="position:relative;z-index:1;">
+    <span class="reveal" style="font-family:var(--font-mono);font-size:var(--label-size);color:rgba(255,255,255,0.5);letter-spacing:.14em;text-transform:uppercase;display:block;margin-bottom:1rem;">Steps 1 – 10</span>
+    <h1 class="white reveal" style="font-size:clamp(2.2rem,5vw,4rem);">Full Demo Walkthrough</h1>
+    <div class="reveal" style="width:60px;height:3px;background:rgba(255,255,255,0.4);margin:1rem auto;"></div>
+    <p class="lead-white reveal" style="max-width:560px;font-size:clamp(1rem,1.8vw,1.3rem);">Follow these steps in order. Each step tells you exactly what to click and what to expect on screen.</p>
+    <p class="reveal" style="color:rgba(255,255,255,0.45);font-size:var(--small-size);margin-top:1rem;font-family:var(--font-mono);">Dashboard URL on the next slide</p>
+  </div>
+</section>
+
+<!-- ===================================================
+     SLIDE 8 — DEMO STEPS 1–2
+     =================================================== -->
+<section class="slide slide-alt" id="slide-8">
+  <div class="slide-header">
+    <span class="brand-tag">OrgIQ Demo</span>
+    <span class="section-tag">Steps 1 – 2 of 10</span>
+  </div>
+  <div class="slide-content left">
+    <h2 class="blue reveal">Opening the Dashboard & Logging In</h2>
+    <div class="rule reveal"></div>
+
+    <div class="col-2 reveal">
+      <div>
+        <div class="step-num" style="margin-bottom:0.8rem;width:fit-content;padding:0 0.9rem;border-radius:20px;font-size:var(--small-size);">Step 1 — Open the Dashboard</div>
+        <div class="card card-blue" style="margin-bottom:0.8rem;">
+          <div class="label">What is this</div>
+          <p style="color:var(--ink-2);font-size:var(--small-size);">The URL points to an S3 bucket configured as a static website. S3 serves a single HTML file — the entire dashboard lives in that one file. No backend web server exists.</p>
+        </div>
+        <div class="card" style="margin-bottom:0.6rem;">
+          <div class="label">What to do</div>
+          <p style="font-size:var(--small-size);">Open your browser and go to:<br>
+          <span style="font-family:var(--font-mono);font-size:calc(var(--small-size)*0.9);color:var(--blue);word-break:break-all;">http://workforce-dashboard-736786104206-prod.s3-website-us-east-1.amazonaws.com</span></p>
+        </div>
+        <div class="card card-blue">
+          <div class="label">What you see</div>
+          <p style="color:var(--ink-2);font-size:var(--small-size);">A dark login screen appears with the OrgIQ logo, an email field, a password field, and an AUTHENTICATE button.</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="step-num" style="margin-bottom:0.8rem;width:fit-content;padding:0 0.9rem;border-radius:20px;font-size:var(--small-size);">Step 2 — Log In</div>
+        <div class="card card-blue" style="margin-bottom:0.8rem;">
+          <div class="label">What is this</div>
+          <p style="color:var(--ink-2);font-size:var(--small-size);">The login screen talks directly to Amazon Cognito's API — no custom server. Cognito validates the credentials and returns a JWT token that proves your identity for every API call made during this session.</p>
+        </div>
+        <div class="card" style="margin-bottom:0.6rem;">
+          <div class="label">What to do</div>
+          <p style="font-size:var(--small-size);">Enter email: <span style="font-family:var(--font-mono);color:var(--blue);">adilk3682@gmail.com</span><br>Enter your password. Click <strong>AUTHENTICATE →</strong></p>
+        </div>
+        <div class="card card-blue">
+          <div class="label">What you see</div>
+          <p style="color:var(--ink-2);font-size:var(--small-size);">Cognito validates the credentials. The login screen fades and the Overview dashboard loads with live data from the database.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================
+     SLIDE 9 — DEMO STEPS 3–4
+     =================================================== -->
+<section class="slide" id="slide-9">
+  <div class="slide-header">
+    <span class="brand-tag">OrgIQ Demo</span>
+    <span class="section-tag">Steps 3 – 4 of 10</span>
+  </div>
+  <div class="slide-content left">
+    <h2 class="blue reveal">Overview Tab & Headcount Tab</h2>
+    <div class="rule reveal"></div>
+
+    <div class="col-2 reveal">
+      <div>
+        <div class="step-num" style="margin-bottom:0.8rem;width:fit-content;padding:0 0.9rem;border-radius:20px;font-size:var(--small-size);">Step 3 — Overview Tab</div>
+        <div class="card card-blue" style="margin-bottom:0.8rem;">
+          <div class="label">What is this</div>
+          <p style="color:var(--ink-2);font-size:var(--small-size);">The first screen after login. It makes one API call to /metrics?type=all and renders everything from the pre-computed analytics DynamoDB table — numbers the nightly Lambda already calculated.</p>
+        </div>
+        <div class="card" style="margin-bottom:0.6rem;">
+          <div class="label">What to do</div>
+          <p style="font-size:var(--small-size);">Look at the five KPI cards at the top. Then scroll down to see the four charts below them.</p>
+        </div>
+        <div class="card card-blue">
+          <div class="label">What you see</div>
+          <p style="color:var(--ink-2);font-size:var(--small-size);">Total headcount (66), high-risk employees (2), avg leave utilisation (175%), offer accept rate (69%). Below: headcount bars per department, attrition risk doughnut, leave utilisation grouped bars, and the recruitment funnel.</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="step-num" style="margin-bottom:0.8rem;width:fit-content;padding:0 0.9rem;border-radius:20px;font-size:var(--small-size);">Step 4 — Headcount Tab</div>
+        <div class="card card-blue" style="margin-bottom:0.8rem;">
+          <div class="label">What is this</div>
+          <p style="color:var(--ink-2);font-size:var(--small-size);">Three charts showing workforce size over time. The hires vs departures chart covers the last 6 months per department. Useful for spotting whether teams are growing or shrinking and when.</p>
+        </div>
+        <div class="card" style="margin-bottom:0.6rem;">
+          <div class="label">What to do</div>
+          <p style="font-size:var(--small-size);">Click <strong>Headcount</strong> in the top navigation bar.</p>
+        </div>
+        <div class="card card-blue">
+          <div class="label">What you see</div>
+          <p style="color:var(--ink-2);font-size:var(--small-size);">Three charts load: monthly hires vs departures as a grouped bar chart, hires per department stacked by month, and current headcount split as a doughnut. Each chart is interactive — hover for exact numbers.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================
+     SLIDE 10 — DEMO STEPS 5–6
+     =================================================== -->
+<section class="slide slide-alt" id="slide-10">
+  <div class="slide-header">
+    <span class="brand-tag">OrgIQ Demo</span>
+    <span class="section-tag">Steps 5 – 6 of 10</span>
+  </div>
+  <div class="slide-content left">
+    <h2 class="blue reveal">Leave Tab & Recruitment Tab</h2>
+    <div class="rule reveal"></div>
+
+    <div class="col-2 reveal">
+      <div>
+        <div class="step-num" style="margin-bottom:0.8rem;width:fit-content;padding:0 0.9rem;border-radius:20px;font-size:var(--small-size);">Step 5 — Leave Tab</div>
+        <div class="card card-blue" style="margin-bottom:0.8rem;">
+          <div class="label">What is this</div>
+          <p style="color:var(--ink-2);font-size:var(--small-size);">Shows how much of each department's monthly leave quota has been consumed. A number over 100% means the team used more than their monthly allocation — this sometimes signals burnout or understaffing.</p>
+        </div>
+        <div class="card" style="margin-bottom:0.6rem;">
+          <div class="label">What to do</div>
+          <p style="font-size:var(--small-size);">Click <strong>Leave</strong> in the navigation bar.</p>
+        </div>
+        <div class="card card-blue">
+          <div class="label">What you see</div>
+          <p style="color:var(--ink-2);font-size:var(--small-size);">A grouped bar chart comparing current month vs 3-month average for each department. Below it, individual department cards show the exact percentage with a colour indicator — red over 90%, amber over 60%, blue below.</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="step-num" style="margin-bottom:0.8rem;width:fit-content;padding:0 0.9rem;border-radius:20px;font-size:var(--small-size);">Step 6 — Recruitment Tab</div>
+        <div class="card card-blue" style="margin-bottom:0.8rem;">
+          <div class="label">What is this</div>
+          <p style="color:var(--ink-2);font-size:var(--small-size);">Tracks 120 applicants through five pipeline stages. Uses cumulative counts — so each bar shows everyone who reached at least that stage, making the funnel shape correct (each bar is always smaller than the one above).</p>
+        </div>
+        <div class="card" style="margin-bottom:0.6rem;">
+          <div class="label">What to do</div>
+          <p style="font-size:var(--small-size);">Click <strong>Recruitment</strong> in the navigation bar.</p>
+        </div>
+        <div class="card card-blue">
+          <div class="label">What you see</div>
+          <p style="color:var(--ink-2);font-size:var(--small-size);">Horizontal funnel bars on the left. On the right: four conversion rates — shortlist rate, interview rate, offer rate, join rate. Below, a bar chart shows the absolute drop-off from stage to stage.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================
+     SLIDE 11 — DEMO STEPS 7–8
+     =================================================== -->
+<section class="slide" id="slide-11">
+  <div class="slide-header">
+    <span class="brand-tag">OrgIQ Demo</span>
+    <span class="section-tag">Steps 7 – 8 of 10</span>
+  </div>
+  <div class="slide-content left">
+    <h2 class="blue reveal">Attrition Risk Tab & Org Chart Tab</h2>
+    <div class="rule reveal"></div>
+
+    <div class="col-2 reveal">
+      <div>
+        <div class="step-num" style="margin-bottom:0.8rem;width:fit-content;padding:0 0.9rem;border-radius:20px;font-size:var(--small-size);">Step 7 — Attrition Risk Tab</div>
+        <div class="card card-blue" style="margin-bottom:0.8rem;">
+          <div class="label">What is this</div>
+          <p style="color:var(--ink-2);font-size:var(--small-size);">Every active employee gets a risk score from 0 to 100 every night. The table shows the top 10 highest-scoring people. Score is based on 4 factors: leave usage (35%), performance score inverted (35%), tenure shape (20%), absence frequency (10%).</p>
+        </div>
+        <div class="card" style="margin-bottom:0.6rem;">
+          <div class="label">What to do</div>
+          <p style="font-size:var(--small-size);">Click <strong>Attrition Risk</strong> in the navigation. Then try clicking any column header to sort the table.</p>
+        </div>
+        <div class="card card-blue">
+          <div class="label">What you see</div>
+          <p style="color:var(--ink-2);font-size:var(--small-size);">A sortable table of 10 employees. Each row has a coloured progress bar (red = high risk, amber = medium, green = low), plus department, role, leave days, performance score, and tenure in months.</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="step-num" style="margin-bottom:0.8rem;width:fit-content;padding:0 0.9rem;border-radius:20px;font-size:var(--small-size);">Step 8 — Org Chart Tab</div>
+        <div class="card card-blue" style="margin-bottom:0.8rem;">
+          <div class="label">What is this</div>
+          <p style="color:var(--ink-2);font-size:var(--small-size);">Built by reading the manager_id field on every employee record in real time. The Lambda traces those relationships recursively to build a tree starting at the CEO. D3.js renders it as a live interactive diagram.</p>
+        </div>
+        <div class="card" style="margin-bottom:0.6rem;">
+          <div class="label">What to do</div>
+          <p style="font-size:var(--small-size);">Click <strong>Org Chart</strong> in the navigation. Use scroll to zoom in and out. Click and drag to pan. Hover over any node.</p>
+        </div>
+        <div class="card card-blue">
+          <div class="label">What you see</div>
+          <p style="color:var(--ink-2);font-size:var(--small-size);">A tree of coloured nodes — each one is an employee, colour matching their department. Hovering shows their name, role, department, and tenure. The full hierarchy from CEO to individual contributors is visible.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================
+     SLIDE 12 — DEMO STEPS 9–10
+     =================================================== -->
+<section class="slide slide-alt" id="slide-12">
+  <div class="slide-header">
+    <span class="brand-tag">OrgIQ Demo</span>
+    <span class="section-tag">Steps 9 – 10 of 10</span>
+  </div>
+  <div class="slide-content left">
+    <h2 class="blue reveal">System Health Tab & Sign Out</h2>
+    <div class="rule reveal"></div>
+
+    <div class="col-2 reveal">
+      <div>
+        <div class="step-num" style="margin-bottom:0.8rem;width:fit-content;padding:0 0.9rem;border-radius:20px;font-size:var(--small-size);">Step 9 — System Health Tab</div>
+        <div class="card card-blue" style="margin-bottom:0.8rem;">
+          <div class="label">What is this</div>
+          <p style="color:var(--ink-2);font-size:var(--small-size);">The /health Lambda calls the real CloudWatch API to fetch actual operational metrics — not simulated data. It reads API Gateway request counts, Lambda invocation counts, error rates, and P99 latency from the last 24 hours.</p>
+        </div>
+        <div class="card" style="margin-bottom:0.6rem;">
+          <div class="label">What to do</div>
+          <p style="font-size:var(--small-size);">Click <strong>System Health</strong> in the navigation. Wait 2–3 seconds while the Lambda fetches from CloudWatch.</p>
+        </div>
+        <div class="card card-blue">
+          <div class="label">What you see</div>
+          <p style="color:var(--ink-2);font-size:var(--small-size);">A grid of real metric cards: API requests (24h), Lambda invocations, error rate %, P99 latency, DynamoDB read units, last aggregation time. Below: two line charts showing hourly API request volume and Lambda error count over the last 24 hours. A function-by-function breakdown shows each Lambda's individual stats.</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="step-num" style="margin-bottom:0.8rem;width:fit-content;padding:0 0.9rem;border-radius:20px;font-size:var(--small-size);">Step 10 — Sign Out</div>
+        <div class="card card-blue" style="margin-bottom:0.8rem;">
+          <div class="label">What is this</div>
+          <p style="color:var(--ink-2);font-size:var(--small-size);">Signing out removes the JWT token from the browser session storage. Anyone opening the same URL after you sign out will see the login screen — not your data. The token cannot be reused once cleared.</p>
+        </div>
+        <div class="card" style="margin-bottom:0.6rem;">
+          <div class="label">What to do</div>
+          <p style="font-size:var(--small-size);">Click <strong>Sign out</strong> in the top right corner of the navigation bar.</p>
+        </div>
+        <div class="card card-blue">
+          <div class="label">What you see</div>
+          <p style="color:var(--ink-2);font-size:var(--small-size);">The page returns to the login screen. No data is visible. The next person to open the URL must authenticate with their own credentials before seeing anything.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================
+     SLIDE 13 — QUICK REFERENCE
+     =================================================== -->
+<section class="slide" id="slide-13">
+  <div class="slide-header">
+    <span class="brand-tag">OrgIQ</span>
+    <span class="section-tag">Quick Reference</span>
+  </div>
+  <div class="slide-content left">
+    <span class="label reveal">Everything the team needs to access and manage the project</span>
+    <h2 class="blue reveal">Quick Reference</h2>
+    <div class="rule reveal"></div>
+
+    <div class="col-2 reveal">
+      <div>
+        <table class="data-table" style="margin-bottom:1rem;">
+          <thead><tr><th>Resource</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>Dashboard URL</td><td style="font-family:var(--font-mono);font-size:calc(var(--small-size)*0.85);color:var(--blue);word-break:break-all;">http://workforce-dashboard-736786104206-prod.s3-website-us-east-1.amazonaws.com</td></tr>
+            <tr><td>Login Email</td><td style="font-family:var(--font-mono);">adilk3682@gmail.com</td></tr>
+            <tr><td>AWS Region</td><td>us-east-1 (N. Virginia)</td></tr>
+            <tr><td>Stack Name</td><td style="font-family:var(--font-mono);">workforce-analytics</td></tr>
+            <tr><td>API Endpoint</td><td style="font-family:var(--font-mono);font-size:calc(var(--small-size)*0.85);color:var(--blue);">https://67iq39wfz7.execute-api.us-east-1.amazonaws.com/prod</td></tr>
+            <tr><td>Aggregation runs</td><td>Daily at 2:00 AM UTC (EventBridge)</td></tr>
+          </tbody>
+        </table>
+
+        <table class="data-table">
+          <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td style="font-family:var(--font-mono);">./launch.sh</td><td>Deploy or update entire AWS stack (idempotent — safe to re-run)</td></tr>
+            <tr><td style="font-family:var(--font-mono);">./teardown.sh</td><td>Remove all AWS resources. Zeroes the monthly bill.</td></tr>
+            <tr><td style="font-family:var(--font-mono);">python3 run_local.py</td><td>Run dashboard locally — no AWS needed, opens browser</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div>
+        <h3 style="font-size:var(--body-size);color:var(--blue-dark);margin-bottom:0.8rem;">Requirements Completed — 45 / 45</h3>
+        <ul class="check-list" style="font-size:var(--small-size);">
+          <li>EventBridge-scheduled aggregation Lambda (daily 2 AM UTC)</li>
+          <li>Analytics DynamoDB table with metric_name (PK) + date (SK)</li>
+          <li>Attrition risk score using leave, performance, and tenure</li>
+          <li>Headcount trend — monthly hires vs departures per department</li>
+          <li>Leave utilisation — current month vs 3-month average</li>
+          <li>Recruitment funnel — applied through joined with conversion rates</li>
+          <li>Top 10 attrition risk table with contributing factors, sortable</li>
+          <li>D3.js interactive org chart built from manager_id tree</li>
+          <li>Cognito login gate — HR_Admin and Leadership groups only</li>
+          <li>CloudWatch panel — real API Gateway + Lambda metrics</li>
+          <li>Python seeding script — 75 realistic employees</li>
+          <li>Architecture diagram + attrition formula documented</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================
+     SLIDE 14 — CLOSING
+     =================================================== -->
+<section class="slide slide-blue" id="slide-14">
+  <div style="position:absolute;inset:0;background:linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 100%);"></div>
+  <div class="slide-content center" style="position:relative;z-index:1;">
+    <span class="reveal" style="font-family:var(--font-mono);font-size:var(--label-size);color:rgba(255,255,255,0.5);letter-spacing:.14em;text-transform:uppercase;display:block;margin-bottom:1rem;">Project Status</span>
+    <h1 class="white reveal" style="font-size:clamp(2.5rem,6vw,4.5rem);">Fully Deployed</h1>
+    <div class="reveal" style="width:60px;height:3px;background:rgba(255,255,255,0.4);margin:1rem auto 1.5rem;"></div>
+    <p class="lead-white reveal" style="max-width:540px;font-size:clamp(1rem,1.8vw,1.3rem);margin-bottom:2rem;">All 45 requirements met. The dashboard is live on AWS, authenticated via Cognito, pulling real data from DynamoDB, and showing real CloudWatch metrics.</p>
+    <div class="col-4 reveal" style="gap:1rem;max-width:700px;">
+      <div class="card-white" style="padding:1rem;">
+        <div class="card-num-white" style="font-family:var(--font-display);font-size:clamp(1.4rem,2.5vw,2rem);font-weight:800;color:#fff;line-height:1;">4</div>
+        <p style="font-size:var(--small-size);color:rgba(255,255,255,0.6);margin-top:0.2rem;">Lambda Functions</p>
+      </div>
+      <div class="card-white" style="padding:1rem;">
+        <div class="card-num-white" style="font-family:var(--font-display);font-size:clamp(1.4rem,2.5vw,2rem);font-weight:800;color:#fff;line-height:1;">5</div>
+        <p style="font-size:var(--small-size);color:rgba(255,255,255,0.6);margin-top:0.2rem;">DynamoDB Tables</p>
+      </div>
+      <div class="card-white" style="padding:1rem;">
+        <div class="card-num-white" style="font-family:var(--font-display);font-size:clamp(1.4rem,2.5vw,2rem);font-weight:800;color:#fff;line-height:1;">10</div>
+        <p style="font-size:var(--small-size);color:rgba(255,255,255,0.6);margin-top:0.2rem;">Chart Instances</p>
+      </div>
+      <div class="card-white" style="padding:1rem;">
+        <div class="card-num-white" style="font-family:var(--font-display);font-size:clamp(1.4rem,2.5vw,2rem);font-weight:800;color:#fff;line-height:1;">~$2</div>
+        <p style="font-size:var(--small-size);color:rgba(255,255,255,0.6);margin-top:0.2rem;">Monthly AWS Cost</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+/* =====================================================
+   SLIDE PRESENTATION CONTROLLER
+   ===================================================== */
+class SlidePresentation {
+  constructor() {
+    this.slides     = Array.from(document.querySelectorAll('.slide'));
+    this.total      = this.slides.length;
+    this.current    = 0;
+    this.scrolling  = false;
+    this.touchStart = null;
+
+    this.progressBar = document.getElementById('progressBar');
+    this.navDots     = document.getElementById('navDots');
+
+    this.buildNavDots();
+    this.setupIntersectionObserver();
+    this.setupKeyboard();
+    this.setupWheel();
+    this.setupTouch();
+    this.setupProgress();
+  }
+
+  buildNavDots() {
+    this.slides.forEach((_, i) => {
+      const li = document.createElement('li');
+      li.addEventListener('click', () => this.goTo(i));
+      this.navDots.appendChild(li);
+    });
+    this.updateDots();
+  }
+
+  updateDots() {
+    const dots = this.navDots.querySelectorAll('li');
+    dots.forEach((d, i) => d.classList.toggle('active', i === this.current));
+  }
+
+  setupProgress() {
+    window.addEventListener('scroll', () => {
+      const scrolled = window.scrollY;
+      const total    = document.body.scrollHeight - window.innerHeight;
+      const pct      = total > 0 ? (scrolled / total) * 100 : 0;
+      if (this.progressBar) this.progressBar.style.width = pct + '%';
+    });
+  }
+
+  setupIntersectionObserver() {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          const idx = this.slides.indexOf(entry.target);
+          if (idx !== -1) { this.current = idx; this.updateDots(); }
+        }
+      });
+    }, { threshold: 0.5 });
+    this.slides.forEach(s => io.observe(s));
+  }
+
+  goTo(index) {
+    const idx = Math.max(0, Math.min(this.total - 1, index));
+    this.slides[idx].scrollIntoView({ behavior: 'smooth' });
+    this.current = idx;
+    this.updateDots();
+  }
+
+  setupKeyboard() {
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault(); this.goTo(this.current + 1);
+      } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault(); this.goTo(this.current - 1);
+      } else if (e.key === 'Home') {
+        e.preventDefault(); this.goTo(0);
+      } else if (e.key === 'End') {
+        e.preventDefault(); this.goTo(this.total - 1);
+      }
+    });
+  }
+
+  setupWheel() {
+    let lastWheel = 0;
+    document.addEventListener('wheel', e => {
+      e.preventDefault();
+      const now = Date.now();
+      if (now - lastWheel < 800) return;
+      lastWheel = now;
+      if (e.deltaY > 0) this.goTo(this.current + 1);
+      else              this.goTo(this.current - 1);
+    }, { passive: false });
+  }
+
+  setupTouch() {
+    document.addEventListener('touchstart', e => {
+      this.touchStart = e.touches[0].clientY;
+    }, { passive: true });
+    document.addEventListener('touchend', e => {
+      if (this.touchStart === null) return;
+      const delta = this.touchStart - e.changedTouches[0].clientY;
+      if (Math.abs(delta) > 50) {
+        if (delta > 0) this.goTo(this.current + 1);
+        else           this.goTo(this.current - 1);
+      }
+      this.touchStart = null;
+    }, { passive: true });
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => new SlidePresentation());
+</script>
+</body>
+</html>

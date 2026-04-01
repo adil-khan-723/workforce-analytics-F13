@@ -1,0 +1,361 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: "Workforce Analytics & Org Intelligence Dashboard \u2014 Full AWS Infrastructure"
+Parameters:
+  Stage:
+    Type: String
+    Default: prod
+    AllowedValues:
+    - dev
+    - staging
+    - prod
+  AdminEmail:
+    Type: String
+    Default: hr.admin@company.com
+  CorsOrigin:
+    Type: String
+    Default: '*'
+Globals:
+  Function:
+    Runtime: python3.11
+    Timeout: 300
+    MemorySize: 512
+    Environment:
+      Variables:
+        EMPLOYEES_TABLE:
+          Ref: EmployeesTable
+        LEAVE_TABLE:
+          Ref: LeaveTable
+        PERFORMANCE_TABLE:
+          Ref: PerformanceTable
+        RECRUITMENT_TABLE:
+          Ref: RecruitmentTable
+        ANALYTICS_TABLE:
+          Ref: AnalyticsTable
+        STAGE:
+          Ref: Stage
+        API_NAME:
+          Fn::Sub: workforce-api-${Stage}
+Resources:
+  EmployeesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName:
+        Fn::Sub: workforce_employees_${Stage}
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+      - AttributeName: employee_id
+        KeyType: HASH
+      AttributeDefinitions:
+      - AttributeName: employee_id
+        AttributeType: S
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+  LeaveTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName:
+        Fn::Sub: workforce_leave_records_${Stage}
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+      - AttributeName: record_id
+        KeyType: HASH
+      - AttributeName: employee_id
+        KeyType: RANGE
+      AttributeDefinitions:
+      - AttributeName: record_id
+        AttributeType: S
+      - AttributeName: employee_id
+        AttributeType: S
+  PerformanceTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName:
+        Fn::Sub: workforce_performance_${Stage}
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+      - AttributeName: employee_id
+        KeyType: HASH
+      - AttributeName: review_date
+        KeyType: RANGE
+      AttributeDefinitions:
+      - AttributeName: employee_id
+        AttributeType: S
+      - AttributeName: review_date
+        AttributeType: S
+  RecruitmentTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName:
+        Fn::Sub: workforce_recruitment_${Stage}
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+      - AttributeName: applicant_id
+        KeyType: HASH
+      - AttributeName: applied_date
+        KeyType: RANGE
+      AttributeDefinitions:
+      - AttributeName: applicant_id
+        AttributeType: S
+      - AttributeName: applied_date
+        AttributeType: S
+  AnalyticsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName:
+        Fn::Sub: workforce_analytics_${Stage}
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+      - AttributeName: metric_name
+        KeyType: HASH
+      - AttributeName: date
+        KeyType: RANGE
+      AttributeDefinitions:
+      - AttributeName: metric_name
+        AttributeType: S
+      - AttributeName: date
+        AttributeType: S
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Sub: workforce-lambda-role-${Stage}
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+      - PolicyName: DDBAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:BatchWriteItem
+            Resource:
+            - Fn::GetAtt:
+              - EmployeesTable
+              - Arn
+            - Fn::GetAtt:
+              - LeaveTable
+              - Arn
+            - Fn::GetAtt:
+              - PerformanceTable
+              - Arn
+            - Fn::GetAtt:
+              - RecruitmentTable
+              - Arn
+            - Fn::GetAtt:
+              - AnalyticsTable
+              - Arn
+      - PolicyName: CloudWatchRead
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - cloudwatch:GetMetricStatistics
+            - cloudwatch:ListMetrics
+            - cloudwatch:GetMetricData
+            Resource: '*'
+  AggregationFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: workforce-aggregation-${Stage}
+      CodeUri: AggregationFn
+      Handler: handler.handler
+      Role:
+        Fn::GetAtt:
+        - LambdaRole
+        - Arn
+      Events:
+        Daily:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 2 * * ? *)
+            Enabled: true
+    Metadata:
+      SamResourceId: AggregationFn
+  OrgChartFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: workforce-org-chart-${Stage}
+      CodeUri: OrgChartFn
+      Handler: handler.handler
+      Role:
+        Fn::GetAtt:
+        - LambdaRole
+        - Arn
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: Api
+            Path: /org-chart
+            Method: GET
+    Metadata:
+      SamResourceId: OrgChartFn
+  MetricsApiFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: workforce-metrics-api-${Stage}
+      CodeUri: MetricsApiFn
+      Handler: handler.handler
+      Role:
+        Fn::GetAtt:
+        - LambdaRole
+        - Arn
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: Api
+            Path: /metrics
+            Method: GET
+    Metadata:
+      SamResourceId: MetricsApiFn
+  HealthApiFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: workforce-health-api-${Stage}
+      CodeUri: HealthApiFn
+      Handler: handler.handler
+      Role:
+        Fn::GetAtt:
+        - LambdaRole
+        - Arn
+      Description: Returns real CloudWatch metrics for the health dashboard panel
+      Timeout: 60
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: Api
+            Path: /health
+            Method: GET
+    Metadata:
+      SamResourceId: HealthApiFn
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name:
+        Fn::Sub: workforce-api-${Stage}
+      StageName:
+        Ref: Stage
+      Cors:
+        AllowOrigin:
+          Fn::Sub: '''${CorsOrigin}'''
+        AllowHeaders: '''Content-Type,Authorization'''
+        AllowMethods: '''GET,OPTIONS'''
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName:
+        Fn::Sub: workforce-pool-${Stage}
+      AutoVerifiedAttributes:
+      - email
+      UsernameAttributes:
+      - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName:
+        Fn::Sub: workforce-client-${Stage}
+      UserPoolId:
+        Ref: UserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+      - ALLOW_USER_PASSWORD_AUTH
+      - ALLOW_REFRESH_TOKEN_AUTH
+      - ALLOW_USER_SRP_AUTH
+  HRAdminGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: HR_Admin
+      UserPoolId:
+        Ref: UserPool
+  LeadershipGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: Leadership
+      UserPoolId:
+        Ref: UserPool
+  DashboardBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Sub: workforce-dashboard-${AWS::AccountId}-${Stage}
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: DashboardBucket
+      PolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal: '*'
+          Action: s3:GetObject
+          Resource:
+            Fn::Sub: arn:aws:s3:::${DashboardBucket}/*
+  AggregationErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName:
+        Fn::Sub: workforce-aggregation-errors-${Stage}
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+      - Name: FunctionName
+        Value:
+          Ref: AggregationFn
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+Outputs:
+  ApiEndpoint:
+    Value:
+      Fn::Sub: https://${Api}.execute-api.${AWS::Region}.amazonaws.com/${Stage}
+  DashboardUrl:
+    Value:
+      Fn::GetAtt:
+      - DashboardBucket
+      - WebsiteURL
+  UserPoolId:
+    Value:
+      Ref: UserPool
+  UserPoolClientId:
+    Value:
+      Ref: UserPoolClient

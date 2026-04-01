@@ -1,0 +1,1868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OrgIQ — Workforce Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Bricolage+Grotesque:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+
+<style>
+/* ════════════════════════════════════════════════════════════
+   DESIGN TOKENS — Mission Control Dark
+════════════════════════════════════════════════════════════ */
+:root {
+  --bg-base:     #0A0C10;
+  --bg-surface:  #10131A;
+  --bg-elevated: #161B25;
+  --bg-hover:    #1C2230;
+  --bg-active:   #1E2535;
+  --border:      rgba(255,255,255,0.07);
+  --border-hi:   rgba(0,230,180,0.35);
+
+  --text-primary:   #E8EDF5;
+  --text-secondary: #8A94A8;
+  --text-muted:     #4A5268;
+  --text-mono:      #B0BDD0;
+
+  --cyan:    #00E6B4;
+  --cyan-20: rgba(0,230,180,0.20);
+  --cyan-10: rgba(0,230,180,0.10);
+  --cyan-05: rgba(0,230,180,0.05);
+
+  --amber:    #F5A623;
+  --amber-20: rgba(245,166,35,0.20);
+  --red:      #FF4D4D;
+  --red-20:   rgba(255,77,77,0.20);
+  --blue:     #4D9EFF;
+  --blue-20:  rgba(77,158,255,0.20);
+  --violet:   #9B59FF;
+  --green:    #2ECC71;
+  --green-20: rgba(46,204,113,0.20);
+
+  --font-display: 'Bricolage Grotesque', sans-serif;
+  --font-mono:    'IBM Plex Mono', monospace;
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --shadow-glow: 0 0 30px rgba(0,230,180,0.08);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* Subtle grid background */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(0,230,180,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,230,180,0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+/* ════════════════════════════════════════════════════════════
+   LOGIN SCREEN
+════════════════════════════════════════════════════════════ */
+#login-screen {
+  position: fixed; inset: 0; z-index: 1000;
+  background: var(--bg-base);
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.5s ease;
+}
+#login-screen.hidden { opacity: 0; pointer-events: none; }
+
+.login-wrap {
+  position: relative; width: 420px; max-width: calc(100vw - 32px);
+}
+
+.login-glow {
+  position: absolute; inset: -40px;
+  background: radial-gradient(ellipse at center, rgba(0,230,180,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.login-card {
+  position: relative;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--r-lg);
+  padding: 40px;
+  backdrop-filter: blur(20px);
+}
+
+.login-mark {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 32px;
+}
+.login-mark-icon {
+  width: 36px; height: 36px;
+  background: var(--cyan);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+}
+.login-mark-icon svg { width: 20px; height: 20px; }
+.login-brand {
+  font-family: var(--font-mono);
+  font-size: 20px; font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-primary);
+}
+.login-brand span { color: var(--cyan); }
+
+.login-tagline {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.field { margin-bottom: 18px; }
+.field label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px; font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.12em;
+  margin-bottom: 8px;
+}
+.field input {
+  width: 100%;
+  padding: 11px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.field input:focus { border-color: var(--cyan); }
+
+.btn-login {
+  width: 100%; padding: 13px;
+  background: var(--cyan);
+  color: #0A0C10;
+  border: none; border-radius: var(--r-sm);
+  font-family: var(--font-mono);
+  font-size: 13px; font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  margin-top: 4px;
+}
+.btn-login:hover { opacity: 0.9; }
+.btn-login:active { transform: scale(0.99); }
+
+.login-note {
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: var(--cyan-05);
+  border: 1px solid rgba(0,230,180,0.15);
+  border-radius: var(--r-sm);
+  font-family: var(--font-mono);
+  font-size: 11px; color: var(--text-muted);
+  line-height: 1.6;
+}
+.login-note strong { color: var(--cyan); }
+
+.login-error {
+  font-family: var(--font-mono);
+  font-size: 11px; color: var(--red);
+  margin-top: 10px; min-height: 16px;
+}
+
+/* ════════════════════════════════════════════════════════════
+   APP SHELL
+════════════════════════════════════════════════════════════ */
+#app { position: relative; z-index: 1; opacity: 0; transition: opacity 0.4s; min-height: 100vh; display: flex; flex-direction: column; }
+#app.visible { opacity: 1; }
+
+/* ── TOPBAR ── */
+.topbar {
+  position: sticky; top: 0; z-index: 200;
+  height: 56px;
+  background: rgba(10,12,16,0.92);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 24px; gap: 0;
+}
+
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  flex-shrink: 0; margin-right: 32px;
+}
+.brand-icon {
+  width: 28px; height: 28px;
+  background: var(--cyan);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+}
+.brand-icon svg { width: 16px; height: 16px; }
+.brand-name {
+  font-family: var(--font-mono);
+  font-size: 15px; font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.04em;
+}
+.brand-name span { color: var(--cyan); }
+
+.nav {
+  display: flex; gap: 2px; flex: 1; overflow-x: auto;
+  scrollbar-width: none;
+}
+.nav::-webkit-scrollbar { display: none; }
+
+.nav-btn {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 14px;
+  background: none; border: none;
+  border-radius: var(--r-sm);
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 13px; font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.nav-btn:hover { background: var(--bg-elevated); color: var(--text-primary); }
+.nav-btn.active {
+  background: var(--cyan-10);
+  color: var(--cyan);
+  border: 1px solid rgba(0,230,180,0.2);
+}
+.nav-btn .dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: currentColor; opacity: 0.5;
+}
+.nav-btn.active .dot { opacity: 1; }
+
+.topbar-end {
+  display: flex; align-items: center; gap: 10px; margin-left: auto; flex-shrink: 0;
+}
+
+.status-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 12px;
+  background: var(--green-20);
+  border: 1px solid rgba(46,204,113,0.25);
+  border-radius: 20px;
+  font-family: var(--font-mono);
+  font-size: 11px; color: var(--green);
+}
+.pulse-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green);
+  animation: blink 2s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.user-chip {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-family: var(--font-mono);
+  font-size: 11px; color: var(--text-secondary);
+}
+.user-avatar {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--cyan), var(--blue));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: #0A0C10;
+}
+
+.btn-signout {
+  padding: 5px 12px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-family: var(--font-mono);
+  font-size: 11px; color: var(--text-muted);
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-signout:hover { border-color: var(--red); color: var(--red); }
+
+/* ════════════════════════════════════════════════════════════
+   PAGES
+════════════════════════════════════════════════════════════ */
+.page { display: none; padding: 28px 24px; animation: fadeUp 0.3s ease; }
+.page.active { display: block; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+.page-header {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  margin-bottom: 24px;
+}
+.page-title {
+  font-size: 26px; font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+}
+.page-meta {
+  font-family: var(--font-mono);
+  font-size: 11px; color: var(--text-muted);
+}
+.live-tag {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 12px;
+  background: var(--cyan-10);
+  border: 1px solid rgba(0,230,180,0.2);
+  border-radius: 20px;
+  font-family: var(--font-mono);
+  font-size: 11px; color: var(--cyan);
+  letter-spacing: 0.06em;
+}
+
+/* ════════════════════════════════════════════════════════════
+   STAT CARDS
+════════════════════════════════════════════════════════════ */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+  gap: 14px; margin-bottom: 24px;
+}
+.kpi {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 20px;
+  position: relative; overflow: hidden;
+  transition: border-color 0.2s, transform 0.2s;
+  cursor: default;
+}
+.kpi:hover { border-color: rgba(0,230,180,0.25); transform: translateY(-2px); }
+.kpi::after {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--accent-color, var(--cyan));
+  opacity: 0.6;
+}
+.kpi-label {
+  font-family: var(--font-mono);
+  font-size: 10px; font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  margin-bottom: 10px;
+}
+.kpi-value {
+  font-size: 32px; font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1;
+  margin-bottom: 8px;
+}
+.kpi-value .unit {
+  font-size: 16px; font-weight: 400;
+  color: var(--text-secondary);
+}
+.kpi-sub {
+  font-family: var(--font-mono);
+  font-size: 11px; color: var(--text-muted);
+}
+.kpi-badge {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px; border-radius: 4px;
+  font-size: 10px; font-weight: 600;
+  font-family: var(--font-mono);
+}
+.badge-green  { background: var(--green-20);  color: #2ECC71; }
+.badge-amber  { background: var(--amber-20);  color: #F5A623; }
+.badge-red    { background: var(--red-20);    color: #FF4D4D; }
+.badge-blue   { background: var(--blue-20);   color: #4D9EFF; }
+.badge-cyan   { background: var(--cyan-10);   color: var(--cyan); }
+
+/* ════════════════════════════════════════════════════════════
+   CARDS
+════════════════════════════════════════════════════════════ */
+.grid-2   { display: grid; grid-template-columns: 1fr 1fr;     gap: 16px; margin-bottom: 16px; }
+.grid-3-1 { display: grid; grid-template-columns: 2fr 1fr;     gap: 16px; margin-bottom: 16px; }
+.grid-1   { display: grid; grid-template-columns: 1fr;         gap: 16px; margin-bottom: 16px; }
+@media(max-width:900px){.grid-2,.grid-3-1{grid-template-columns:1fr}}
+
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 22px;
+  transition: border-color 0.2s;
+}
+.card:hover { border-color: rgba(255,255,255,0.12); }
+
+.card-head { margin-bottom: 18px; }
+.card-title {
+  font-size: 14px; font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+}
+.card-sub {
+  font-family: var(--font-mono);
+  font-size: 11px; color: var(--text-muted);
+}
+
+.chart-box { position: relative; height: 260px; }
+.chart-box canvas { max-height: 260px; }
+
+/* ════════════════════════════════════════════════════════════
+   FUNNEL BARS
+════════════════════════════════════════════════════════════ */
+.funnel { padding: 4px 0; }
+.funnel-row {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 10px;
+}
+.funnel-stage {
+  width: 90px; flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 11px; color: var(--text-secondary);
+  text-align: right;
+}
+.funnel-track {
+  flex: 1; height: 32px;
+  background: var(--bg-elevated);
+  border-radius: var(--r-sm);
+  overflow: hidden; position: relative;
+}
+.funnel-fill {
+  height: 100%;
+  display: flex; align-items: center;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 600;
+  color: rgba(0,0,0,0.8);
+  transition: width 1s cubic-bezier(0.4,0,0.2,1);
+  white-space: nowrap; min-width: 36px;
+}
+.funnel-n {
+  width: 44px; flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 14px; font-weight: 600;
+  color: var(--text-primary);
+  text-align: right;
+}
+
+/* ════════════════════════════════════════════════════════════
+   ATTRITION TABLE
+════════════════════════════════════════════════════════════ */
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 10px; font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  border-bottom: 1px solid var(--border);
+  text-align: left; white-space: nowrap;
+  cursor: pointer; user-select: none;
+}
+thead th:hover { color: var(--cyan); }
+thead th .si { font-size: 9px; margin-left: 3px; opacity: 0.5; }
+tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+tbody tr:hover { background: var(--bg-hover); }
+tbody tr:last-child { border-bottom: none; }
+tbody td { padding: 12px 14px; vertical-align: middle; }
+.td-name { font-weight: 600; font-size: 13px; color: var(--text-primary); }
+.td-id   { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); }
+.td-dept { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
+.td-role { font-size: 12px; color: var(--text-secondary); max-width: 160px; }
+.risk-wrap { display: flex; align-items: center; gap: 8px; }
+.risk-track {
+  flex: 1; height: 5px; max-width: 80px;
+  background: var(--bg-elevated); border-radius: 3px; overflow: hidden;
+}
+.risk-fill { height: 100%; border-radius: 3px; }
+.risk-num {
+  font-family: var(--font-mono);
+  font-size: 14px; font-weight: 600;
+  min-width: 36px; text-align: right;
+}
+.factor-list { display: flex; gap: 4px; flex-wrap: wrap; }
+.factor {
+  padding: 2px 7px; border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px; color: var(--text-muted);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+}
+
+/* ════════════════════════════════════════════════════════════
+   ORG CHART
+════════════════════════════════════════════════════════════ */
+#org-container {
+  height: 560px; overflow: hidden;
+  border-radius: var(--r-md);
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+}
+.org-controls {
+  display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;
+}
+.org-btn {
+  padding: 6px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-family: var(--font-mono);
+  font-size: 11px; color: var(--text-secondary);
+  cursor: pointer; transition: all 0.15s;
+}
+.org-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+.org-hint {
+  font-family: var(--font-mono);
+  font-size: 11px; color: var(--text-muted);
+  align-self: center; margin-left: 4px;
+}
+.org-tooltip {
+  position: absolute;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  font-family: var(--font-mono);
+  font-size: 12px; color: var(--text-primary);
+  pointer-events: none; z-index: 500;
+  opacity: 0; transition: opacity 0.15s;
+  line-height: 1.7; max-width: 220px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+/* ════════════════════════════════════════════════════════════
+   HEALTH PANEL
+════════════════════════════════════════════════════════════ */
+.health-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px,1fr));
+  gap: 12px; margin-bottom: 20px;
+}
+.health-card {
+  padding: 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+.health-label {
+  font-family: var(--font-mono);
+  font-size: 10px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+.health-val {
+  font-family: var(--font-mono);
+  font-size: 24px; font-weight: 600;
+  color: var(--text-primary); line-height: 1;
+}
+.health-unit {
+  font-size: 12px; font-weight: 400;
+  color: var(--text-muted);
+}
+.health-status {
+  display: flex; align-items: center; gap: 5px;
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px; color: var(--text-muted);
+}
+
+/* ════════════════════════════════════════════════════════════
+   LEAVE STAT CARDS
+════════════════════════════════════════════════════════════ */
+.leave-dept-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+  gap: 12px; margin-top: 16px;
+}
+.leave-dept-card {
+  padding: 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+.ldc-name {
+  font-family: var(--font-mono);
+  font-size: 10px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  margin-bottom: 6px;
+}
+.ldc-val {
+  font-size: 28px; font-weight: 700;
+  line-height: 1; margin-bottom: 6px;
+}
+.ldc-avg {
+  font-family: var(--font-mono);
+  font-size: 10px; color: var(--text-muted);
+}
+
+/* ════════════════════════════════════════════════════════════
+   CONVERSION RATE CARDS
+════════════════════════════════════════════════════════════ */
+.conv-cards { display: flex; flex-direction: column; gap: 14px; }
+.conv-card {
+  padding: 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+.conv-label {
+  font-family: var(--font-mono);
+  font-size: 10px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  margin-bottom: 4px;
+}
+.conv-val {
+  font-size: 30px; font-weight: 700;
+  color: var(--text-primary); line-height: 1;
+}
+.conv-sub {
+  font-family: var(--font-mono);
+  font-size: 10px; color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* ════════════════════════════════════════════════════════════
+   SCROLLBAR
+════════════════════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- ─── LOGIN ───────────────────────────────────────────────── -->
+<div id="login-screen">
+  <div class="login-wrap">
+    <div class="login-glow"></div>
+    <div class="login-card">
+      <div class="login-mark">
+        <div class="login-mark-icon">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M4 10h12M10 4l6 6-6 6" stroke="#0A0C10" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <span class="login-brand">Org<span>IQ</span></span>
+      </div>
+      <div class="login-tagline">Workforce Intelligence Platform · Restricted Access</div>
+
+      <!-- SCREEN 1: Login -->
+      <div id="screen-login">
+        <div class="field">
+          <label>Email / Username</label>
+          <input type="text" id="username" placeholder="hr.admin@company.com" autocomplete="username">
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button class="btn-login" onclick="doLogin()">AUTHENTICATE →</button>
+        <div class="login-note">
+          <strong>DEMO_MODE</strong> — set in CONFIG below.<br>
+          Production: authenticates directly against Amazon Cognito.
+        </div>
+      </div>
+
+      <!-- SCREEN 2: New password required (Cognito FORCE_CHANGE_PASSWORD) -->
+      <div id="screen-newpass" style="display:none">
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--cyan);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px">
+          Set Permanent Password
+        </div>
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-bottom:20px;line-height:1.6">
+          Your account requires a new password before first login.
+        </div>
+        <div class="field">
+          <label>New Password</label>
+          <input type="password" id="new-password" placeholder="Min 8 chars, upper, lower, number" autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label>Confirm Password</label>
+          <input type="password" id="confirm-password" placeholder="Repeat new password" autocomplete="new-password">
+        </div>
+        <button class="btn-login" onclick="doSetNewPassword()">SET PASSWORD & LOGIN →</button>
+      </div>
+
+      <div class="login-error" id="login-error"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── APP ─────────────────────────────────────────────────── -->
+<div id="app">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10M8 3l5 5-5 5" stroke="#0A0C10" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <span class="brand-name">Org<span>IQ</span></span>
+    </div>
+
+    <nav class="nav">
+      <button class="nav-btn active" onclick="switchTab('overview',this)"><span class="dot"></span>Overview</button>
+      <button class="nav-btn" onclick="switchTab('headcount',this)"><span class="dot"></span>Headcount</button>
+      <button class="nav-btn" onclick="switchTab('leave',this)"><span class="dot"></span>Leave</button>
+      <button class="nav-btn" onclick="switchTab('recruitment',this)"><span class="dot"></span>Recruitment</button>
+      <button class="nav-btn" onclick="switchTab('attrition',this)"><span class="dot"></span>Attrition Risk</button>
+      <button class="nav-btn" onclick="switchTab('orgchart',this)"><span class="dot"></span>Org Chart</button>
+      <button class="nav-btn" onclick="switchTab('health',this)"><span class="dot"></span>System Health</button>
+    </nav>
+
+    <div class="topbar-end">
+      <div class="status-pill"><span class="pulse-dot"></span>LIVE</div>
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">H</div>
+        <span id="user-label">HR_Admin</span>
+      </div>
+      <button class="btn-signout" onclick="doLogout()">Sign out</button>
+    </div>
+  </header>
+
+  <!-- ══ OVERVIEW ══════════════════════════════════════════ -->
+  <div id="tab-overview" class="page active">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Workforce Overview</div>
+        <div class="page-meta" id="overview-date">Loading…</div>
+      </div>
+      <div class="live-tag"><span class="pulse-dot" style="background:var(--cyan);animation:blink 1.5s infinite"></span>REAL-TIME</div>
+    </div>
+
+    <div class="kpi-row" id="kpi-row">
+      <div class="kpi" style="--accent-color:var(--cyan)">
+        <div class="kpi-label">Total Headcount</div>
+        <div class="kpi-value" id="k-total">—</div>
+        <div class="kpi-sub">Active employees</div>
+      </div>
+      <div class="kpi" style="--accent-color:var(--red)">
+        <div class="kpi-label">High Attrition Risk</div>
+        <div class="kpi-value" id="k-risk" style="color:var(--red)">—</div>
+        <div class="kpi-sub">Score ≥ 61</div>
+      </div>
+      <div class="kpi" style="--accent-color:var(--blue)">
+        <div class="kpi-label">Open Pipeline</div>
+        <div class="kpi-value" id="k-pipeline" style="color:var(--blue)">—</div>
+        <div class="kpi-sub">Active applicants</div>
+      </div>
+      <div class="kpi" style="--accent-color:var(--amber)">
+        <div class="kpi-label">Avg Leave Util.</div>
+        <div class="kpi-value" id="k-leave" style="color:var(--amber)">—<span class="unit">%</span></div>
+        <div class="kpi-sub">Current month</div>
+      </div>
+      <div class="kpi" style="--accent-color:var(--green)">
+        <div class="kpi-label">Offer Accept Rate</div>
+        <div class="kpi-value" id="k-offer" style="color:var(--green)">—<span class="unit">%</span></div>
+        <div class="kpi-sub">Last 6 months</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><div class="card-title">Headcount by Department</div><div class="card-sub">Active employees — current snapshot</div></div>
+        <div class="chart-box"><canvas id="c-dept-hc"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">Attrition Risk Distribution</div><div class="card-sub">Active employees by risk tier</div></div>
+        <div class="chart-box"><canvas id="c-risk-dist"></canvas></div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><div class="card-title">Leave Utilisation</div><div class="card-sub">% of monthly quota — current vs 3-month avg</div></div>
+        <div class="chart-box"><canvas id="c-leave-ov"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">Recruitment Funnel</div><div class="card-sub">Pipeline stages — all time</div></div>
+        <div class="funnel" id="funnel-ov"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ HEADCOUNT ═════════════════════════════════════════ -->
+  <div id="tab-headcount" class="page">
+    <div class="page-header">
+      <div><div class="page-title">Headcount Trends</div></div>
+    </div>
+    <div class="grid-1">
+      <div class="card">
+        <div class="card-head"><div class="card-title">Monthly Hires vs Departures</div><div class="card-sub">6-month rolling window · all departments</div></div>
+        <div class="chart-box" style="height:320px"><canvas id="c-hires-dep"></canvas></div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><div class="card-title">Hires by Department</div><div class="card-sub">Stacked monthly · last 6 months</div></div>
+        <div class="chart-box"><canvas id="c-hires-dept"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">Current Headcount Split</div><div class="card-sub">Distribution across departments</div></div>
+        <div class="chart-box"><canvas id="c-hc-donut"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ LEAVE ══════════════════════════════════════════ -->
+  <div id="tab-leave" class="page">
+    <div class="page-header"><div><div class="page-title">Leave Utilisation</div></div></div>
+    <div class="grid-1">
+      <div class="card">
+        <div class="card-head"><div class="card-title">Current Month vs 3-Month Average</div><div class="card-sub">% of monthly quota consumed</div></div>
+        <div class="chart-box" style="height:320px"><canvas id="c-leave-detail"></canvas></div>
+      </div>
+    </div>
+    <div class="leave-dept-grid" id="leave-dept-grid"></div>
+  </div>
+
+  <!-- ══ RECRUITMENT ════════════════════════════════════ -->
+  <div id="tab-recruitment" class="page">
+    <div class="page-header"><div><div class="page-title">Recruitment Funnel</div></div></div>
+    <div class="grid-3-1">
+      <div class="card">
+        <div class="card-head"><div class="card-title">Pipeline Stages</div><div class="card-sub">Applicants per stage</div></div>
+        <div class="funnel" id="funnel-detail"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">Conversion Rates</div><div class="card-sub">Key funnel metrics</div></div>
+        <div class="conv-cards" id="conv-cards"></div>
+      </div>
+    </div>
+    <div class="grid-1">
+      <div class="card">
+        <div class="card-head"><div class="card-title">Stage Drop-off</div><div class="card-sub">Funnel visualisation — bar chart</div></div>
+        <div class="chart-box"><canvas id="c-rec-bar"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ATTRITION ══════════════════════════════════════ -->
+  <div id="tab-attrition" class="page">
+    <div class="page-header">
+      <div><div class="page-title">Attrition Risk</div><div class="page-meta">Composite score · click headers to sort</div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">Top 10 At-Risk Employees</div><div class="card-sub">Weighted formula: leave ratio (35%) · performance inverse (35%) · tenure risk (20%) · absence frequency (10%)</div></div>
+      <div class="tbl-wrap" id="attrition-tbl"></div>
+    </div>
+  </div>
+
+  <!-- ══ ORG CHART ══════════════════════════════════════ -->
+  <div id="tab-orgchart" class="page">
+    <div class="page-header"><div><div class="page-title">Live Org Chart</div></div></div>
+    <div class="card" style="position:relative">
+      <div class="org-controls">
+        <button class="org-btn" onclick="orgZoom(1.25)">＋ Zoom In</button>
+        <button class="org-btn" onclick="orgZoom(0.8)">－ Zoom Out</button>
+        <button class="org-btn" onclick="orgReset()">⟲ Reset</button>
+        <span class="org-hint">Drag to pan · Scroll to zoom · Hover for details</span>
+      </div>
+      <div id="org-container"></div>
+      <div class="org-tooltip" id="org-tt"></div>
+    </div>
+  </div>
+
+  <!-- ══ SYSTEM HEALTH ══════════════════════════════════ -->
+  <div id="tab-health" class="page">
+    <div class="page-header">
+      <div><div class="page-title">System Health</div></div>
+      <div class="live-tag"><span class="pulse-dot" style="background:var(--cyan)"></span>MONITORING</div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-head"><div class="card-title">CloudWatch Metrics</div><div class="card-sub">API Gateway · Lambda · DynamoDB operational data</div></div>
+      <div class="health-grid" id="health-grid"></div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><div class="card-title">API Request Volume</div><div class="card-sub">Requests per hour — last 24h</div></div>
+        <div class="chart-box"><canvas id="c-api-req"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">Lambda Error Rate</div><div class="card-sub">Error % per hour — last 24h</div></div>
+        <div class="chart-box"><canvas id="c-lambda-err"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /#app -->
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   CONFIG
+══════════════════════════════════════════════════════════ */
+const CONFIG = {
+  API_BASE: 'https://67iq39wfz7.execute-api.us-east-1.amazonaws.com/prod',
+  COGNITO: {
+    userPoolId:       'us-east-1_hRecaDeBf',
+    userPoolClientId: '7ljldb97mr1p2gusm63c12hmr0',
+    region:           'us-east-1',
+  },
+  ALLOWED_GROUPS: ['HR_Admin', 'Leadership'],
+  DEMO_MODE: true,
+};
+
+/* ══════════════════════════════════════════════════════════
+   MOCK DATA
+══════════════════════════════════════════════════════════ */
+const MOCK = {
+  headcount: {
+    total: 75,
+    current: { engineering:22, product:10, design:8, marketing:12, hr:8, finance:8, leadership:7 },
+    months: ['Oct 24','Nov 24','Dec 24','Jan 25','Feb 25','Mar 25'],
+    trend: {
+      engineering: { hires:[2,1,3,0,2,1], departures:[0,1,0,1,0,0] },
+      product:     { hires:[1,0,1,1,0,0], departures:[0,0,1,0,0,0] },
+      design:      { hires:[0,1,0,1,0,1], departures:[1,0,0,0,1,0] },
+      marketing:   { hires:[2,0,1,0,1,0], departures:[0,1,0,0,0,1] },
+      hr:          { hires:[0,1,0,0,1,0], departures:[0,0,0,1,0,0] },
+      finance:     { hires:[1,0,0,1,0,0], departures:[0,0,1,0,0,0] },
+      leadership:  { hires:[0,0,1,0,0,0], departures:[0,0,0,0,0,0] },
+    },
+  },
+  leave: {
+    departments: {
+      engineering: { current_month_pct:62, three_month_avg:55 },
+      product:     { current_month_pct:78, three_month_avg:70 },
+      design:      { current_month_pct:45, three_month_avg:50 },
+      marketing:   { current_month_pct:89, three_month_avg:75 },
+      hr:          { current_month_pct:55, three_month_avg:60 },
+      finance:     { current_month_pct:38, three_month_avg:42 },
+      leadership:  { current_month_pct:30, three_month_avg:35 },
+    },
+  },
+  recruitment: {
+    // funnel contains CUMULATIVE counts (everyone who reached AT LEAST that stage)
+    // so bars always decrease: applied ≥ shortlisted ≥ interviewed ≥ offered ≥ joined
+    funnel: { applied:100, shortlisted:72, interviewed:45, offered:22, joined:15 },
+    raw: { applied:8, shortlisted:24, interviewed:23, offered:7, joined:15, rejected:28 },
+    conversion_rates: { shortlist_rate:72.0, interview_rate:62.5, offer_rate:48.9, join_rate:68.2 },
+  },
+  attrition: {
+    distribution: { high:8, medium:24, low:43 },
+    top10: [
+      {employee_id:'EMP0031',name:'Rohan Mehta',    department:'engineering',role:'Software Engineer',     risk_score:82.5,risk_level:'high',  factors:{leave_days:19,avg_perf_score:2.1,tenure_months:4, leave_events:7}},
+      {employee_id:'EMP0018',name:'Priya Nair',     department:'marketing',  role:'Marketing Manager',     risk_score:76.2,risk_level:'high',  factors:{leave_days:17,avg_perf_score:2.4,tenure_months:6, leave_events:6}},
+      {employee_id:'EMP0055',name:'Arjun Sharma',   department:'hr',         role:'HR Business Partner',   risk_score:73.8,risk_level:'high',  factors:{leave_days:20,avg_perf_score:2.0,tenure_months:3, leave_events:8}},
+      {employee_id:'EMP0042',name:'Sneha Joshi',    department:'product',    role:'Product Manager',       risk_score:68.1,risk_level:'high',  factors:{leave_days:16,avg_perf_score:2.6,tenure_months:52,leave_events:5}},
+      {employee_id:'EMP0007',name:'Karan Patel',    department:'finance',    role:'Financial Analyst',     risk_score:65.4,risk_level:'high',  factors:{leave_days:18,avg_perf_score:2.3,tenure_months:5, leave_events:6}},
+      {employee_id:'EMP0063',name:'Ananya Reddy',   department:'design',     role:'UX Designer',           risk_score:62.9,risk_level:'high',  factors:{leave_days:14,avg_perf_score:2.8,tenure_months:8, leave_events:5}},
+      {employee_id:'EMP0029',name:'Vikram Singh',   department:'engineering',role:'DevOps Engineer',       risk_score:59.7,risk_level:'medium',factors:{leave_days:13,avg_perf_score:3.0,tenure_months:51,leave_events:4}},
+      {employee_id:'EMP0071',name:'Meera Krishnan', department:'marketing',  role:'Content Strategist',    risk_score:55.3,risk_level:'medium',factors:{leave_days:15,avg_perf_score:2.9,tenure_months:10,leave_events:5}},
+      {employee_id:'EMP0014',name:'Aditya Kumar',   department:'product',    role:'Senior Product Manager',risk_score:51.8,risk_level:'medium',factors:{leave_days:12,avg_perf_score:3.1,tenure_months:48,leave_events:4}},
+      {employee_id:'EMP0038',name:'Kavitha Rajan',  department:'hr',         role:'Talent Acquisition',    risk_score:48.6,risk_level:'medium',factors:{leave_days:11,avg_perf_score:3.2,tenure_months:9, leave_events:4}},
+    ],
+  },
+  orgTree: {
+    id:'EMP0001',name:'Sanjay Iyer',role:'CEO',department:'leadership',tenure_months:60,location:'Bangalore',children:[
+      {id:'EMP0002',name:'Anjali Kapoor',role:'CTO',department:'leadership',tenure_months:54,location:'Bangalore',children:[
+        {id:'EMP0010',name:'Rahul Dev',role:'Engineering Manager',department:'engineering',tenure_months:36,location:'Bangalore',children:[
+          {id:'EMP0011',name:'Priya Pillai',role:'Sr. Software Engineer',department:'engineering',tenure_months:24,location:'Hyderabad',children:[]},
+          {id:'EMP0012',name:'Nikhil Rajan',role:'Software Engineer',department:'engineering',tenure_months:14,location:'Bangalore',children:[]},
+          {id:'EMP0013',name:'Deepa Menon',role:'DevOps Engineer',department:'engineering',tenure_months:18,location:'Remote',children:[]},
+        ]},
+        {id:'EMP0020',name:'Arun Kumar',role:'Staff Engineer',department:'engineering',tenure_months:42,location:'Pune',children:[
+          {id:'EMP0021',name:'Shruti Nair',role:'Data Engineer',department:'engineering',tenure_months:20,location:'Bangalore',children:[]},
+          {id:'EMP0022',name:'Vijay Sharma',role:'QA Engineer',department:'engineering',tenure_months:16,location:'Mumbai',children:[]},
+        ]},
+      ]},
+      {id:'EMP0003',name:'Neha Gupta',role:'CPO',department:'leadership',tenure_months:48,location:'Delhi',children:[
+        {id:'EMP0030',name:'Rohan Verma',role:'Sr. Product Manager',department:'product',tenure_months:28,location:'Bangalore',children:[
+          {id:'EMP0031',name:'Sana Khan',role:'Product Manager',department:'product',tenure_months:4,location:'Mumbai',children:[]},
+          {id:'EMP0032',name:'Arpit Jain',role:'Product Analyst',department:'product',tenure_months:12,location:'Bangalore',children:[]},
+        ]},
+        {id:'EMP0040',name:'Meena Ravi',role:'Design Lead',department:'design',tenure_months:30,location:'Chennai',children:[
+          {id:'EMP0041',name:'Kiran Pillai',role:'UX Designer',department:'design',tenure_months:22,location:'Bangalore',children:[]},
+          {id:'EMP0042',name:'Tanvi Shah',role:'UI Designer',department:'design',tenure_months:52,location:'Mumbai',children:[]},
+        ]},
+      ]},
+      {id:'EMP0004',name:'Vikrant Joshi',role:'CFO',department:'leadership',tenure_months:56,location:'Mumbai',children:[
+        {id:'EMP0050',name:'Divya Rao',role:'Finance Manager',department:'finance',tenure_months:32,location:'Mumbai',children:[
+          {id:'EMP0051',name:'Ajay Tiwari',role:'Financial Analyst',department:'finance',tenure_months:5,location:'Delhi',children:[]},
+          {id:'EMP0052',name:'Pooja Bhat',role:'Sr. Financial Analyst',department:'finance',tenure_months:26,location:'Mumbai',children:[]},
+        ]},
+      ]},
+      {id:'EMP0005',name:'Riya Mehta',role:'CMO',department:'leadership',tenure_months:44,location:'Bangalore',children:[
+        {id:'EMP0060',name:'Suresh Nair',role:'Marketing Director',department:'marketing',tenure_months:38,location:'Bangalore',children:[
+          {id:'EMP0061',name:'Amrita Singh',role:'Content Strategist',department:'marketing',tenure_months:10,location:'Delhi',children:[]},
+          {id:'EMP0062',name:'Manish Kumar',role:'SEO Specialist',department:'marketing',tenure_months:14,location:'Pune',children:[]},
+        ]},
+      ]},
+      {id:'EMP0006',name:'Kavita Bose',role:'Chief of Staff',department:'leadership',tenure_months:40,location:'Bangalore',children:[
+        {id:'EMP0070',name:'Manoj Dey',role:'HR Manager',department:'hr',tenure_months:34,location:'Hyderabad',children:[
+          {id:'EMP0071',name:'Smita Lal',role:'HR Business Partner',department:'hr',tenure_months:8,location:'Bangalore',children:[]},
+          {id:'EMP0072',name:'Rakesh Jha',role:'Talent Acquisition',department:'hr',tenure_months:15,location:'Remote',children:[]},
+        ]},
+      ]},
+    ],
+  },
+};
+
+/* ══════════════════════════════════════════════════════════
+   AUTH — Direct Cognito API (no Amplify dependency)
+   Handles: normal login, NEW_PASSWORD_REQUIRED challenge,
+            token storage, token injection into API calls.
+══════════════════════════════════════════════════════════ */
+
+let currentUser    = null;
+let _cognitoSession = null;   // holds session for NEW_PASSWORD_REQUIRED
+
+// ── Token helpers ──────────────────────────────────────────
+function saveTokens(authResult) {
+  sessionStorage.setItem('id_token',      authResult.IdToken);
+  sessionStorage.setItem('access_token',  authResult.AccessToken);
+  sessionStorage.setItem('refresh_token', authResult.RefreshToken || '');
+}
+function getIdToken()     { return sessionStorage.getItem('id_token'); }
+function clearTokens()    { sessionStorage.removeItem('id_token'); sessionStorage.removeItem('access_token'); sessionStorage.removeItem('refresh_token'); }
+function parseJwtPayload(token) {
+  try { return JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))); }
+  catch { return {}; }
+}
+
+// ── Cognito REST helper ────────────────────────────────────
+async function cognitoRequest(target, body) {
+  const url = `https://cognito-idp.${CONFIG.COGNITO.region}.amazonaws.com/`;
+  const res  = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type':  'application/x-amz-json-1.1',
+      'X-Amz-Target':  target,
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const msg = data.message || data.Message || data.__type || 'Authentication error';
+    throw new Error(msg);
+  }
+  return data;
+}
+
+// ── Show / hide login screens ──────────────────────────────
+function showLoginScreen()   {
+  document.getElementById('screen-login').style.display   = 'block';
+  document.getElementById('screen-newpass').style.display = 'none';
+}
+function showNewPassScreen() {
+  document.getElementById('screen-login').style.display   = 'none';
+  document.getElementById('screen-newpass').style.display = 'block';
+  document.getElementById('login-error').textContent = '';
+  setTimeout(() => document.getElementById('new-password').focus(), 100);
+}
+
+// ── Step 1: Login ──────────────────────────────────────────
+async function doLogin() {
+  const u   = document.getElementById('username').value.trim();
+  const p   = document.getElementById('password').value;
+  const err = document.getElementById('login-error');
+  err.textContent = '';
+
+  if (!u || !p) { err.textContent = 'Please enter email and password.'; return; }
+
+  // Demo mode — bypass Cognito entirely
+  if (CONFIG.DEMO_MODE) {
+    currentUser = { username: u, role: 'HR_Admin', email: u };
+    showApp(); return;
+  }
+
+  const btn = document.querySelector('#screen-login .btn-login');
+  btn.textContent = 'AUTHENTICATING…'; btn.disabled = true;
+
+  try {
+    const data = await cognitoRequest(
+      'AWSCognitoIdentityProviderService.InitiateAuth',
+      {
+        AuthFlow: 'USER_PASSWORD_AUTH',
+        ClientId:  CONFIG.COGNITO.userPoolClientId,
+        AuthParameters: { USERNAME: u, PASSWORD: p },
+      }
+    );
+
+    if (data.ChallengeName === 'NEW_PASSWORD_REQUIRED') {
+      // Cognito requires password change before first login
+      _cognitoSession = { session: data.Session, username: u };
+      showNewPassScreen();
+      return;
+    }
+
+    if (data.AuthenticationResult) {
+      await _finalizeLogin(data.AuthenticationResult, u);
+    } else {
+      throw new Error('Unexpected response from Cognito');
+    }
+
+  } catch (e) {
+    err.textContent = e.message || 'Login failed.';
+  } finally {
+    btn.textContent = 'AUTHENTICATE →'; btn.disabled = false;
+  }
+}
+
+// ── Step 2: Handle NEW_PASSWORD_REQUIRED challenge ─────────
+async function doSetNewPassword() {
+  const np  = document.getElementById('new-password').value;
+  const cp  = document.getElementById('confirm-password').value;
+  const err = document.getElementById('login-error');
+  err.textContent = '';
+
+  if (!np || np.length < 8) { err.textContent = 'Password must be at least 8 characters.'; return; }
+  if (np !== cp)             { err.textContent = 'Passwords do not match.'; return; }
+  if (!/[A-Z]/.test(np))    { err.textContent = 'Password must contain at least one uppercase letter.'; return; }
+  if (!/[a-z]/.test(np))    { err.textContent = 'Password must contain at least one lowercase letter.'; return; }
+  if (!/[0-9]/.test(np))    { err.textContent = 'Password must contain at least one number.'; return; }
+
+  const btn = document.querySelector('#screen-newpass .btn-login');
+  btn.textContent = 'SETTING PASSWORD…'; btn.disabled = true;
+
+  try {
+    const data = await cognitoRequest(
+      'AWSCognitoIdentityProviderService.RespondToAuthChallenge',
+      {
+        ChallengeName: 'NEW_PASSWORD_REQUIRED',
+        ClientId:       CONFIG.COGNITO.userPoolClientId,
+        Session:        _cognitoSession.session,
+        ChallengeResponses: {
+          USERNAME:     _cognitoSession.username,
+          NEW_PASSWORD: np,
+        },
+      }
+    );
+
+    if (data.AuthenticationResult) {
+      await _finalizeLogin(data.AuthenticationResult, _cognitoSession.username);
+    } else {
+      throw new Error('Password change failed — unexpected response');
+    }
+  } catch (e) {
+    err.textContent = e.message || 'Failed to set password.';
+  } finally {
+    btn.textContent = 'SET PASSWORD & LOGIN →'; btn.disabled = false;
+  }
+}
+
+// ── Step 3: Finalize — validate group, store tokens, show app ──
+async function _finalizeLogin(authResult, username) {
+  const payload = parseJwtPayload(authResult.IdToken);
+  const groups  = payload['cognito:groups'] || [];
+  const email   = payload.email || username;
+
+  if (!CONFIG.DEMO_MODE && CONFIG.ALLOWED_GROUPS.length > 0) {
+    if (!CONFIG.ALLOWED_GROUPS.some(g => groups.includes(g))) {
+      throw new Error(`Access denied. Your account is not in an allowed group (${CONFIG.ALLOWED_GROUPS.join(', ')}).`);
+    }
+  }
+
+  saveTokens(authResult);
+  currentUser = {
+    username: email,
+    role:     groups[0] || 'HR_Admin',
+    email:    email,
+    groups:   groups,
+  };
+  _cognitoSession = null;
+  showApp();
+}
+
+// ── Logout ─────────────────────────────────────────────────
+function doLogout() {
+  clearTokens();
+  currentUser    = null;
+  _cognitoSession = null;
+  showLoginScreen();
+  document.getElementById('username').value = '';
+  document.getElementById('password').value = '';
+  document.getElementById('login-error').textContent = '';
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('login-screen').classList.remove('hidden');
+}
+
+function showApp() {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('user-label').textContent  = currentUser.role;
+  document.getElementById('user-avatar').textContent = currentUser.email[0].toUpperCase();
+  document.getElementById('app').classList.add('visible');
+  initDashboard();
+}
+
+// ── Restore session on page reload ────────────────────────
+function tryRestoreSession() {
+  if (CONFIG.DEMO_MODE) return false;
+  const token = getIdToken();
+  if (!token) return false;
+  try {
+    const payload = parseJwtPayload(token);
+    if (payload.exp * 1000 < Date.now()) { clearTokens(); return false; }
+    const groups = payload['cognito:groups'] || [];
+    currentUser  = { username: payload.email, role: groups[0] || 'HR_Admin', email: payload.email, groups };
+    return true;
+  } catch { clearTokens(); return false; }
+}
+
+// ── Authenticated fetch ────────────────────────────────────
+async function authFetch(url) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (!CONFIG.DEMO_MODE) {
+    const token = getIdToken();
+    // Send raw JWT — API GW Cognito authorizer expects token without "Bearer" prefix
+    if (token) headers['Authorization'] = token;
+  }
+  const res = await fetch(url, { method: 'GET', headers });
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    if (res.status === 401 || res.status === 403) {
+      doLogout();
+      throw new Error(`Auth error (${res.status}) — please log in again`);
+    }
+    throw new Error(`API ${res.status}: ${text.slice(0,200)}`);
+  }
+  return res.json();
+}
+
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('login-screen').classList.contains('hidden')) {
+    if (e.key === 'Enter') {
+      if (document.getElementById('screen-newpass').style.display !== 'none') {
+        doSetNewPassword();
+      } else {
+        doLogin();
+      }
+    }
+  }
+});
+
+// Restore session on page reload
+if (tryRestoreSession()) {
+  showApp();
+}
+
+/* ══════════════════════════════════════════════════════════
+   NAV
+══════════════════════════════════════════════════════════ */
+function switchTab(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'orgchart' && !window._orgInit) { initOrgChart(); window._orgInit = true; }
+  if (id === 'health'   && !window._hlthInit){ initHealth();   window._hlthInit = true; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   DATA FETCH
+══════════════════════════════════════════════════════════ */
+async function fetchData() {
+  if (CONFIG.DEMO_MODE) return MOCK;
+  return authFetch(`${CONFIG.API_BASE}/metrics?type=all`);
+}
+
+/* ══════════════════════════════════════════════════════════
+   CHART SETUP
+══════════════════════════════════════════════════════════ */
+const DEPTS = ['engineering','product','design','marketing','hr','finance','leadership'];
+const DEPT_COLORS = {
+  engineering:'#00E6B4', product:'#4D9EFF', design:'#FF69B4',
+  marketing:'#F5A623',   hr:'#2ECC71',      finance:'#9B59FF',
+  leadership:'#FF4D4D',
+};
+const DEPT_LABELS = {
+  engineering:'Eng', product:'Product', design:'Design',
+  marketing:'Marketing', hr:'HR', finance:'Finance', leadership:'Leadership'
+};
+
+const CHART_FONT = { family: "'IBM Plex Mono', monospace", size: 11 };
+const GRID_COLOR = 'rgba(255,255,255,0.04)';
+const TICK_COLOR = '#4A5268';
+
+const SHARED_OPTS = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { labels: { color: '#8A94A8', font: CHART_FONT, boxWidth: 10, padding: 16 } } },
+};
+
+function killChart(id) {
+  const c = Chart.getChart(id); if (c) c.destroy();
+}
+
+/* ══════════════════════════════════════════════════════════
+   OVERVIEW
+══════════════════════════════════════════════════════════ */
+function initOverview(data) {
+  const { headcount: hc, leave, recruitment: rec, attrition: att } = data;
+
+  document.getElementById('overview-date').textContent =
+    new Date().toLocaleDateString('en-IN', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  // KPI values
+  document.getElementById('k-total').textContent    = hc.total;
+  document.getElementById('k-risk').textContent     = att.distribution.high || 0;
+  const pipeline = (rec.funnel.applied||0) - (rec.funnel.joined||0) - (rec.funnel.rejected||0);
+  document.getElementById('k-pipeline').textContent = Math.max(0, pipeline);
+  const avgLeave = DEPTS.reduce((s,d)=>s+(leave.departments[d]?.current_month_pct||0),0)/DEPTS.length;
+  document.getElementById('k-leave').innerHTML = avgLeave.toFixed(0)+'<span class="unit">%</span>';
+  document.getElementById('k-offer').innerHTML = (rec.conversion_rates.join_rate||0).toFixed(0)+'<span class="unit">%</span>';
+
+  // Dept headcount bar
+  killChart('c-dept-hc');
+  new Chart(document.getElementById('c-dept-hc'), {
+    type: 'bar',
+    data: {
+      labels: DEPTS.map(d=>DEPT_LABELS[d]),
+      datasets: [{
+        data: DEPTS.map(d=>hc.current[d]||0),
+        backgroundColor: DEPTS.map(d=>DEPT_COLORS[d]+'33'),
+        borderColor: DEPTS.map(d=>DEPT_COLORS[d]),
+        borderWidth: 1, borderRadius: 4, borderSkipped: false,
+      }],
+    },
+    options: {
+      ...SHARED_OPTS,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { grid:{ color:GRID_COLOR }, ticks:{ color:TICK_COLOR, font:CHART_FONT }, beginAtZero:true },
+        x: { grid:{ display:false }, ticks:{ color:TICK_COLOR, font:CHART_FONT } },
+      },
+    },
+  });
+
+  // Risk distribution doughnut
+  killChart('c-risk-dist');
+  new Chart(document.getElementById('c-risk-dist'), {
+    type: 'doughnut',
+    data: {
+      labels: ['High','Medium','Low'],
+      datasets: [{
+        data: [att.distribution.high||0, att.distribution.medium||0, att.distribution.low||0],
+        backgroundColor: ['rgba(255,77,77,0.15)','rgba(245,166,35,0.15)','rgba(46,204,113,0.15)'],
+        borderColor:     ['#FF4D4D','#F5A623','#2ECC71'],
+        borderWidth: 1.5, hoverOffset: 6,
+      }],
+    },
+    options: {
+      ...SHARED_OPTS, cutout: '68%',
+      plugins: { legend: { position:'bottom', labels:{ color:'#8A94A8', font:CHART_FONT, padding:16, boxWidth:10 } } },
+    },
+  });
+
+  // Leave overview
+  killChart('c-leave-ov');
+  new Chart(document.getElementById('c-leave-ov'), {
+    type: 'bar',
+    data: {
+      labels: DEPTS.map(d=>DEPT_LABELS[d]),
+      datasets: [
+        { label:'Current %', data:DEPTS.map(d=>leave.departments[d]?.current_month_pct||0), backgroundColor:'rgba(0,230,180,0.2)', borderColor:'#00E6B4', borderWidth:1, borderRadius:4 },
+        { label:'3-Month Avg', data:DEPTS.map(d=>leave.departments[d]?.three_month_avg||0), backgroundColor:'rgba(77,158,255,0.2)', borderColor:'#4D9EFF', borderWidth:1, borderRadius:4 },
+      ],
+    },
+    options: {
+      ...SHARED_OPTS,
+      scales: {
+        y: { grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:CHART_FONT,callback:v=>v+'%'}, max:130 },
+        x: { grid:{display:false}, ticks:{color:TICK_COLOR,font:CHART_FONT} },
+      },
+    },
+  });
+
+  // Funnel overview
+  buildFunnel('funnel-ov', rec.funnel);
+}
+
+/* ══════════════════════════════════════════════════════════
+   HEADCOUNT
+══════════════════════════════════════════════════════════ */
+function initHeadcount(hc) {
+  const months = hc.months;
+  const totalH = months.map((_,i)=>DEPTS.reduce((s,d)=>s+(hc.trend[d]?.hires[i]||0),0));
+  const totalD = months.map((_,i)=>DEPTS.reduce((s,d)=>s+(hc.trend[d]?.departures[i]||0),0));
+
+  killChart('c-hires-dep');
+  new Chart(document.getElementById('c-hires-dep'), {
+    type: 'bar',
+    data: {
+      labels: months,
+      datasets: [
+        { label:'Hires',      data:totalH, backgroundColor:'rgba(46,204,113,0.2)',  borderColor:'#2ECC71', borderWidth:1, borderRadius:4 },
+        { label:'Departures', data:totalD, backgroundColor:'rgba(255,77,77,0.2)',   borderColor:'#FF4D4D', borderWidth:1, borderRadius:4 },
+      ],
+    },
+    options: {
+      ...SHARED_OPTS,
+      scales: {
+        y: { grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:CHART_FONT}, beginAtZero:true },
+        x: { grid:{display:false}, ticks:{color:TICK_COLOR,font:CHART_FONT} },
+      },
+    },
+  });
+
+  killChart('c-hires-dept');
+  new Chart(document.getElementById('c-hires-dept'), {
+    type: 'bar',
+    data: {
+      labels: months,
+      datasets: DEPTS.map(d => ({
+        label: DEPT_LABELS[d],
+        data:  hc.trend[d]?.hires || [],
+        backgroundColor: DEPT_COLORS[d]+'44',
+        borderColor:     DEPT_COLORS[d],
+        borderWidth: 1, borderRadius: 3,
+      })),
+    },
+    options: {
+      ...SHARED_OPTS,
+      scales: {
+        x: { stacked:true, grid:{display:false}, ticks:{color:TICK_COLOR,font:CHART_FONT} },
+        y: { stacked:true, grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:CHART_FONT}, beginAtZero:true },
+      },
+    },
+  });
+
+  killChart('c-hc-donut');
+  new Chart(document.getElementById('c-hc-donut'), {
+    type: 'doughnut',
+    data: {
+      labels: DEPTS.map(d=>DEPT_LABELS[d]),
+      datasets: [{
+        data: DEPTS.map(d=>hc.current[d]||0),
+        backgroundColor: DEPTS.map(d=>DEPT_COLORS[d]+'33'),
+        borderColor:     DEPTS.map(d=>DEPT_COLORS[d]),
+        borderWidth: 1.5, hoverOffset: 6,
+      }],
+    },
+    options: {
+      ...SHARED_OPTS, cutout:'60%',
+      plugins: { legend:{ position:'right', labels:{color:'#8A94A8',font:CHART_FONT,padding:12,boxWidth:10} } },
+    },
+  });
+}
+
+/* ══════════════════════════════════════════════════════════
+   LEAVE
+══════════════════════════════════════════════════════════ */
+function initLeave(leave) {
+  killChart('c-leave-detail');
+  new Chart(document.getElementById('c-leave-detail'), {
+    type: 'bar',
+    data: {
+      labels: DEPTS.map(d=>DEPT_LABELS[d]),
+      datasets: [
+        { label:'Current Month %', data:DEPTS.map(d=>leave.departments[d]?.current_month_pct||0), backgroundColor:'rgba(0,230,180,0.18)', borderColor:'#00E6B4', borderWidth:1, borderRadius:6 },
+        { label:'3-Month Avg %',   data:DEPTS.map(d=>leave.departments[d]?.three_month_avg||0),   backgroundColor:'rgba(77,158,255,0.18)', borderColor:'#4D9EFF', borderWidth:1, borderRadius:6 },
+      ],
+    },
+    options: {
+      ...SHARED_OPTS,
+      scales: {
+        y: { grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,font:CHART_FONT,callback:v=>v+'%'}, max:130 },
+        x: { grid:{display:false}, ticks:{color:TICK_COLOR,font:CHART_FONT} },
+      },
+    },
+  });
+
+  const grid = document.getElementById('leave-dept-grid');
+  grid.innerHTML = '';
+  DEPTS.forEach(d => {
+    const cur = leave.departments[d]?.current_month_pct || 0;
+    const avg = leave.departments[d]?.three_month_avg   || 0;
+    const col = cur>90 ? 'var(--red)' : cur>60 ? 'var(--amber)' : 'var(--cyan)';
+    const el  = document.createElement('div');
+    el.className = 'leave-dept-card';
+    el.innerHTML = `
+      <div class="ldc-name">${DEPT_LABELS[d]}</div>
+      <div class="ldc-val" style="color:${col}">${cur.toFixed(0)}<span style="font-size:16px;font-weight:400;color:var(--text-muted)">%</span></div>
+      <div class="ldc-avg">3-month avg: ${avg.toFixed(0)}%</div>`;
+    grid.appendChild(el);
+  });
+}
+
+/* ══════════════════════════════════════════════════════════
+   RECRUITMENT
+══════════════════════════════════════════════════════════ */
+function initRecruitment(rec) {
+  buildFunnel('funnel-detail', rec.funnel);
+
+  const cc = document.getElementById('conv-cards');
+  const r  = rec.conversion_rates;
+  cc.innerHTML = [
+    ['Shortlist Rate',  r.shortlist_rate,  'Applied → Shortlisted'],
+    ['Interview Rate',  r.interview_rate,  'Shortlisted → Interviewed'],
+    ['Offer Rate',      r.offer_rate,      'Interviewed → Offered'],
+    ['Join Rate',       r.join_rate,       'Offered → Joined'],
+  ].map(([l,v,s])=>`
+    <div class="conv-card">
+      <div class="conv-label">${l}</div>
+      <div class="conv-val">${(v||0).toFixed(1)}<span style="font-size:16px;font-weight:400;color:var(--text-muted)">%</span></div>
+      <div class="conv-sub">${s}</div>
+    </div>`).join('');
+
+  const stages=['applied','shortlisted','interviewed','offered','joined'];
+  const colors=['#00E6B4','#4D9EFF','#F5A623','#2ECC71','#9B59FF'];
+  killChart('c-rec-bar');
+  new Chart(document.getElementById('c-rec-bar'), {
+    type:'bar',
+    data:{
+      labels:stages.map(s=>s[0].toUpperCase()+s.slice(1)),
+      datasets:[{
+        data:stages.map(s=>rec.funnel[s]||0),
+        backgroundColor:colors.map(c=>c+'33'),
+        borderColor:colors,
+        borderWidth:1, borderRadius:6, borderSkipped:false,
+      }],
+    },
+    options:{
+      ...SHARED_OPTS,
+      plugins:{legend:{display:false}},
+      scales:{
+        y:{grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR,font:CHART_FONT},beginAtZero:true},
+        x:{grid:{display:false},ticks:{color:TICK_COLOR,font:CHART_FONT}},
+      },
+    },
+  });
+}
+
+function buildFunnel(containerId, funnel) {
+  const stages=[
+    {key:'applied',     label:'Applied',     color:'#00E6B4'},
+    {key:'shortlisted', label:'Shortlisted', color:'#4D9EFF'},
+    {key:'interviewed', label:'Interviewed', color:'#F5A623'},
+    {key:'offered',     label:'Offered',     color:'#2ECC71'},
+    {key:'joined',      label:'Joined',      color:'#9B59FF'},
+  ];
+  // max = total applicants (applied stage = everyone who ever applied)
+  // funnel values are cumulative so bars always shrink top to bottom
+  const max = funnel.applied || 1;
+  document.getElementById(containerId).innerHTML = stages.map(s=>{
+    const v = funnel[s.key] || 0;
+    const pct = Math.min(100, Math.round(v / max * 100));
+    return `
+    <div class="funnel-row">
+      <div class="funnel-stage">${s.label}</div>
+      <div class="funnel-track">
+        <div class="funnel-fill" style="width:${pct}%;background:${s.color}">${pct}%</div>
+      </div>
+      <div class="funnel-n">${v}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════════════════════════
+   ATTRITION TABLE
+══════════════════════════════════════════════════════════ */
+let _sortCol='risk_score', _sortDir=-1;
+
+function initAttrition(top10) {
+  window._attrData = top10;
+  renderAttrition(top10);
+}
+
+function renderAttrition(rows) {
+  const sorted = [...rows].sort((a,b)=>{
+    let av = a[_sortCol] ?? a.factors?.[_sortCol] ?? 0;
+    let bv = b[_sortCol] ?? b.factors?.[_sortCol] ?? 0;
+    return (av>bv?1:-1)*_sortDir;
+  });
+
+  const cols=[
+    ['name','Name'],['department','Dept'],['role','Role'],
+    ['risk_score','Risk'],['risk_level','Level'],
+    ['factors.leave_days','Leave Days'],['factors.avg_perf_score','Perf'],
+    ['factors.tenure_months','Tenure'],
+  ];
+
+  const thead = `<thead><tr>${cols.map(([c,l])=>`
+    <th onclick="resort('${c}')">${l}
+      <span class="si">${c===_sortCol?(_sortDir>0?'↑':'↓'):'↕'}</span>
+    </th>`).join('')}</tr></thead>`;
+
+  const tbody = sorted.map(e=>{
+    const sc=e.risk_score, lv=e.risk_level;
+    const rC = lv==='high'?'#FF4D4D':lv==='medium'?'#F5A623':'#2ECC71';
+    const bCls= lv==='high'?'badge-red':lv==='medium'?'badge-amber':'badge-green';
+    return `<tr>
+      <td>
+        <div class="td-name">${e.name}</div>
+        <div class="td-id">${e.employee_id}</div>
+      </td>
+      <td><span class="td-dept">${e.department}</span></td>
+      <td><span class="td-role">${e.role}</span></td>
+      <td>
+        <div class="risk-wrap">
+          <div class="risk-track"><div class="risk-fill" style="width:${sc}%;background:${rC}"></div></div>
+          <span class="risk-num" style="color:${rC}">${sc}</span>
+        </div>
+      </td>
+      <td><span class="kpi-badge ${bCls}">${lv}</span></td>
+      <td><span class="factor">${e.factors.leave_days}d</span></td>
+      <td><span class="factor">${(e.factors.avg_perf_score||0).toFixed(1)}</span></td>
+      <td><span class="factor">${e.factors.tenure_months}m</span></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('attrition-tbl').innerHTML = `<table>${thead}<tbody>${tbody}</tbody></table>`;
+}
+
+function resort(col) {
+  if (col===_sortCol) _sortDir=-_sortDir; else { _sortCol=col; _sortDir=-1; }
+  renderAttrition(window._attrData);
+}
+
+/* ══════════════════════════════════════════════════════════
+   ORG CHART — D3
+══════════════════════════════════════════════════════════ */
+let _orgSvg, _orgG, _orgZoom;
+
+async function initOrgChart() {
+  let treeData = MOCK.orgTree;
+  if (!CONFIG.DEMO_MODE) {
+    try {
+      const d = await authFetch(`${CONFIG.API_BASE}/org-chart`);
+      treeData = d.tree;
+    } catch(e) { console.warn('Org chart API failed, using mock', e); }
+  }
+  renderOrg(treeData);
+}
+
+function renderOrg(data) {
+  const container = document.getElementById('org-container');
+  container.innerHTML = '';
+  const W = container.clientWidth || 900;
+  const H = 560;
+
+  const DEPT_C = {
+    engineering:'#00E6B4', product:'#4D9EFF', design:'#FF69B4',
+    marketing:'#F5A623',   hr:'#2ECC71',      finance:'#9B59FF',
+    leadership:'#FF4D4D',  '':'#8A94A8',
+  };
+
+  _orgSvg = d3.select('#org-container').append('svg')
+    .attr('width','100%').attr('height',H);
+
+  _orgG = _orgSvg.append('g');
+
+  _orgZoom = d3.zoom().scaleExtent([0.15,3])
+    .on('zoom', e => _orgG.attr('transform', e.transform));
+  _orgSvg.call(_orgZoom);
+
+  const root   = d3.hierarchy(data);
+  const layout = d3.tree().nodeSize([160, 90]);
+  layout(root);
+
+  // Links
+  _orgG.selectAll('path.org-lnk')
+    .data(root.links()).enter()
+    .append('path').attr('class','org-lnk')
+    .attr('fill','none')
+    .attr('stroke','rgba(255,255,255,0.08)')
+    .attr('stroke-width',1)
+    .attr('d', d3.linkVertical().x(d=>d.x).y(d=>d.y));
+
+  // Nodes
+  const node = _orgG.selectAll('g.org-nd')
+    .data(root.descendants()).enter()
+    .append('g').attr('class','org-nd')
+    .attr('transform', d=>`translate(${d.x},${d.y})`)
+    .style('cursor','pointer')
+    .on('mouseover', (ev,d) => {
+      const tt  = document.getElementById('org-tt');
+      const box = document.getElementById('org-container').getBoundingClientRect();
+      tt.innerHTML = `<span style="color:var(--cyan);font-weight:600">${d.data.name}</span><br>${d.data.role}<br><span style="color:var(--text-muted)">${d.data.department} · ${d.data.tenure_months}m tenure</span><br><span style="color:var(--text-muted)">${d.data.location||''}</span>`;
+      tt.style.left=(ev.clientX-box.left+14)+'px';
+      tt.style.top =(ev.clientY-box.top+14)+'px';
+      tt.style.opacity='1';
+    })
+    .on('mouseout', () => { document.getElementById('org-tt').style.opacity='0'; });
+
+  const NW=138, NH=48;
+
+  // Node background
+  node.append('rect')
+    .attr('x',-NW/2).attr('y',-NH/2)
+    .attr('width',NW).attr('height',NH).attr('rx',7)
+    .attr('fill', d=>{
+      const c = DEPT_C[d.data.department]||'#8A94A8';
+      return c+'18';
+    })
+    .attr('stroke', d=>DEPT_C[d.data.department]||'#8A94A8')
+    .attr('stroke-width',1);
+
+  // Name
+  node.append('text')
+    .attr('y',-6).attr('text-anchor','middle')
+    .style('font-family','IBM Plex Mono, monospace')
+    .style('font-size','11px').style('font-weight','600')
+    .style('fill', d=>DEPT_C[d.data.department]||'#8A94A8')
+    .text(d=>d.data.name.length>17?d.data.name.slice(0,15)+'…':d.data.name);
+
+  // Role
+  node.append('text')
+    .attr('y',9).attr('text-anchor','middle')
+    .style('font-family','IBM Plex Mono, monospace')
+    .style('font-size','9px').style('fill','rgba(138,148,168,0.8)')
+    .text(d=>d.data.role.length>22?d.data.role.slice(0,20)+'…':d.data.role);
+
+  // Children indicator
+  node.filter(d=>d.data.children?.length>0)
+    .append('circle').attr('cy',NH/2+6).attr('r',4)
+    .attr('fill','none')
+    .attr('stroke', d=>DEPT_C[d.data.department]||'#8A94A8')
+    .attr('stroke-width',1);
+
+  // Center
+  const bounds = _orgG.node().getBBox();
+  const tx = W/2 - bounds.x - bounds.width/2;
+  _orgSvg.call(_orgZoom.transform, d3.zoomIdentity.translate(tx, 56).scale(0.72));
+}
+
+function orgZoom(f) { _orgSvg?.call(_orgZoom.scaleBy, f); }
+function orgReset() {
+  const W = document.getElementById('org-container').clientWidth||900;
+  _orgSvg?.call(_orgZoom.transform, d3.zoomIdentity.translate(W/2,56).scale(0.72));
+}
+
+/* ══════════════════════════════════════════════════════════
+   SYSTEM HEALTH
+══════════════════════════════════════════════════════════ */
+async function initHealth() {
+  const grid = document.getElementById('health-grid');
+
+  // Show loading state
+  grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:24px;
+    font-family:var(--font-mono);font-size:12px;color:var(--text-muted)">
+    Loading live CloudWatch data…</div>`;
+
+  let d = null;
+
+  if (!CONFIG.DEMO_MODE) {
+    try {
+      d = await authFetch(`${CONFIG.API_BASE}/health`);
+    } catch(e) {
+      console.warn('Health API failed:', e);
+    }
+  }
+
+  // If demo mode OR API failed, use realistic placeholder values
+  const api  = d?.api_gateway  || {};
+  const lam  = d?.lambda       || {};
+  const ddb  = d?.dynamodb     || {};
+  const ts   = d?.timeseries   || {};
+
+  const fmt  = n => n >= 1000 ? (n/1000).toFixed(1)+'k' : String(n);
+  const errRt = lam.overall_error_rate_pct ?? 0;
+
+  const metrics = [
+    { label:'API Requests (24h)',   val: fmt(api.requests_24h      ?? 0),  unit:'req',  ok: (api.errors_5xx_24h ?? 0) < 5 },
+    { label:'Lambda Invocations',   val: fmt(lam.total_invocations_24h ?? 0), unit:'24h', ok: true },
+    { label:'Lambda Error Rate',    val: errRt.toFixed(2),                  unit:'%',    ok: errRt < 1 },
+    { label:'API P99 Latency',      val: api.latency_p99_ms  ?? 0,          unit:'ms',   ok: (api.latency_p99_ms ?? 0) < 3000 },
+    { label:'DDB Read Units',       val: fmt(ddb.read_units_24h  ?? 0),     unit:'RCU',  ok: true },
+    { label:'Last Aggregation',     val: lam.last_aggregation ?? '—',       unit:'',     ok: true },
+    { label:'4xx Errors (24h)',     val: api.errors_4xx_24h  ?? 0,          unit:'req',  ok: (api.errors_4xx_24h ?? 0) < 20 },
+    { label:'5xx Errors (24h)',     val: api.errors_5xx_24h  ?? 0,          unit:'req',  ok: (api.errors_5xx_24h ?? 0) === 0 },
+  ];
+
+  grid.innerHTML = metrics.map(m=>`
+    <div class="health-card">
+      <div class="health-label">${m.label}</div>
+      <div class="health-val">${m.val}<span class="health-unit">${m.unit ? ' '+m.unit : ''}</span></div>
+      <div class="health-status">
+        <span class="pulse-dot" style="background:${m.ok?'var(--green)':'var(--amber)'}"></span>
+        ${m.ok?'Healthy':'Watch'}
+      </div>
+    </div>`).join('');
+
+  // Per-function breakdown (real mode only)
+  if (d?.lambda?.functions) {
+    const fns   = d.lambda.functions;
+    const fKeys = Object.keys(fns);
+    if (fKeys.length > 0) {
+      const fnHtml = fKeys.map(k => {
+        const f  = fns[k];
+        const ok = f.status === 'ok';
+        return `<div class="health-card">
+          <div class="health-label">${k}</div>
+          <div class="health-val">${f.invocations}<span class="health-unit"> inv</span></div>
+          <div class="health-status">
+            <span class="pulse-dot" style="background:${ok?'var(--green)':'var(--red)'}"></span>
+            ${f.error_rate_pct}% errors · P99 ${f.duration_p99_ms}ms
+          </div>
+        </div>`;
+      }).join('');
+      grid.insertAdjacentHTML('beforeend',
+        `<div style="grid-column:1/-1;font-family:var(--font-mono);font-size:10px;
+          color:var(--text-muted);margin-top:8px;letter-spacing:.06em">
+          FUNCTION BREAKDOWN</div>` + fnHtml
+      );
+    }
+  }
+
+  // Charts — use real timeseries if available, else flat zeros
+  const hours     = ts.hours        || Array.from({length:24},(_,i)=>`${String(i).padStart(2,'0')}:00`);
+  const reqData   = ts.api_requests || new Array(24).fill(0);
+  const errData   = ts.lambda_errors|| new Array(24).fill(0);
+
+  killChart('c-api-req');
+  new Chart(document.getElementById('c-api-req'),{
+    type:'line',
+    data:{labels:hours,datasets:[{
+      label:'Requests/hr',data:reqData,
+      borderColor:'#00E6B4',backgroundColor:'rgba(0,230,180,0.06)',
+      fill:true,tension:0.4,pointRadius:2,borderWidth:1.5,
+    }]},
+    options:{...SHARED_OPTS,plugins:{legend:{display:false}},
+      scales:{y:{grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR,font:CHART_FONT},beginAtZero:true},
+              x:{grid:{display:false},ticks:{color:TICK_COLOR,font:CHART_FONT,maxTicksLimit:8}}}},
+  });
+
+  killChart('c-lambda-err');
+  new Chart(document.getElementById('c-lambda-err'),{
+    type:'line',
+    data:{labels:hours,datasets:[{
+      label:'Lambda errors/hr',data:errData,
+      borderColor:'#FF4D4D',backgroundColor:'rgba(255,77,77,0.06)',
+      fill:true,tension:0.4,pointRadius:2,borderWidth:1.5,
+    }]},
+    options:{...SHARED_OPTS,plugins:{legend:{display:false}},
+      scales:{y:{grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR,font:CHART_FONT},beginAtZero:true,
+                 ticks:{callback:v=>Number.isInteger(v)?v:'',color:TICK_COLOR,font:CHART_FONT}},
+              x:{grid:{display:false},ticks:{color:TICK_COLOR,font:CHART_FONT,maxTicksLimit:8}}}},
+  });
+}
+
+/* ══════════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════════ */
+async function initDashboard() {
+  try {
+    const data = await fetchData();
+    initOverview(data);
+    initHeadcount(data.headcount);
+    initLeave(data.leave);
+    initRecruitment(data.recruitment);
+    initAttrition(data.attrition.top10);
+  } catch(e) {
+    console.error('Dashboard init error:', e);
+    // Show error banner so we can debug
+    const banner = document.createElement('div');
+    banner.style.cssText = 'position:fixed;top:60px;left:0;right:0;background:#FF4D4D;color:#fff;padding:12px 24px;font-family:monospace;font-size:13px;z-index:999;';
+    banner.textContent = 'API Error: ' + (e.message || e);
+    document.body.appendChild(banner);
+    setTimeout(() => banner.remove(), 10000);
+  }
+}
+</script>
+</body>
+</html>
