@@ -1,4 +1,4 @@
-# OrgIQ — Workforce Intelligence Dashboard
+# OrgIQ — Workforce Intelligence Dashboard.
 
 **Real-time HR analytics platform:** headcount trends, attrition risk scoring, leave utilisation, recruitment funnel, live org chart — all in a single dark-mode dashboard.
 
